@@ -1,0 +1,273 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: misinformation-backend
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/max-instance-count: "100"
+        run.googleapis.com/min-instance-count: "0"
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/vpc-access-connector: projects/PROJECT_ID/locations/REGION/connectors/connector-name
+        run.googleapis.com/vpc-access-egress: all
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/PROJECT_ID/misinformation-backend:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            cpu: "2"
+            memory: 4Gi
+          requests:
+            cpu: "1"
+            memory: 2Gi
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "PROJECT_ID"
+        - name: VERTEX_AI_LOCATION
+          value: "us-central1"
+        - name: FIREBASE_PROJECT_ID
+          value: "PROJECT_ID"
+        - name: CLOUD_STORAGE_BUCKET
+          value: "misinformation-storage-bucket"
+        - name: BIGQUERY_DATASET
+          value: "misinformation_analytics"
+        - name: PUBSUB_TOPIC_CONTENT_ANALYSIS
+          value: "content-analysis"
+        - name: FAISS_INDEX_PATH
+          value: "/tmp/faiss_index"
+        - name: REDIS_URL
+          value: "redis://REDIS_IP:6379"
+        - name: CELERY_BROKER_URL
+          value: "redis://REDIS_IP:6379/1"
+        - name: CELERY_RESULT_BACKEND
+          value: "redis://REDIS_IP:6379/2"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: MAX_CONCURRENT_REQUESTS
+          value: "100"
+        - name: AI_MODEL_DEFAULT
+          value: "flash"
+        - name: AI_MODEL_ESCALATION_THRESHOLD
+          value: "0.8"
+        - name: SUPPORTED_LANGUAGES
+          value: '["en","hi","bn","te","ta","mr","kn"]'
+        - name: EVALUATION_ENABLED
+          value: "true"
+        - name: A_B_TESTING_ENABLED
+          value: "false"
+        envFrom:
+        - secretRef:
+            name: backend-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: faiss-storage
+          mountPath: /tmp
+        - name: model-storage
+          mountPath: /app/models
+      volumes:
+      - name: faiss-storage
+        emptyDir: {}
+      - name: model-storage
+        emptyDir: {}
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: misinformation-frontend
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/max-instance-count: "50"
+        run.googleapis.com/min-instance-count: "0"
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/PROJECT_ID/misinformation-frontend:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2Gi
+          requests:
+            cpu: "500m"
+            memory: 1Gi
+        env:
+        - name: NEXT_PUBLIC_APP_URL
+          value: "https://misinformation-frontend-PROJECT_ID.a.run.app"
+        - name: NEXT_PUBLIC_API_URL
+          value: "https://misinformation-backend-PROJECT_ID.a.run.app"
+        - name: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+          value: "PROJECT_ID"
+        - name: NEXT_PUBLIC_GOOGLE_CLOUD_PROJECT
+          value: "PROJECT_ID"
+        - name: NEXT_PUBLIC_VERTEX_AI_LOCATION
+          value: "us-central1"
+        - name: NEXT_PUBLIC_ENABLE_PWA
+          value: "true"
+        - name: NEXT_PUBLIC_ENABLE_ANALYTICS
+          value: "true"
+        - name: NEXT_PUBLIC_ENABLE_NOTIFICATIONS
+          value: "true"
+        - name: NODE_ENV
+          value: "production"
+        envFrom:
+        - secretRef:
+            name: frontend-secrets
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secrets
+type: Opaque
+data:
+  # Base64 encoded secrets
+  JWT_SECRET_KEY: <base64-encoded-jwt-secret>
+  FIREBASE_PRIVATE_KEY_ID: <base64-encoded-private-key-id>
+  FIREBASE_PRIVATE_KEY: <base64-encoded-private-key>
+  FIREBASE_CLIENT_EMAIL: <base64-encoded-client-email>
+  FIREBASE_CLIENT_ID: <base64-encoded-client-id>
+  FIREBASE_AUTH_DOMAIN: <base64-encoded-auth-domain>
+  FACT_CHECK_API_KEY: <base64-encoded-fact-check-api-key>
+  REDIS_PASSWORD: <base64-encoded-redis-password>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: frontend-secrets
+type: Opaque
+data:
+  # Base64 encoded secrets
+  NEXT_PUBLIC_FIREBASE_API_KEY: <base64-encoded-firebase-api-key>
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: <base64-encoded-firebase-auth-domain>
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: <base64-encoded-storage-bucket>
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: <base64-encoded-sender-id>
+  NEXT_PUBLIC_FIREBASE_APP_ID: <base64-encoded-app-id>
+  NEXT_PUBLIC_GA_TRACKING_ID: <base64-encoded-ga-tracking-id>
+  NEXT_PUBLIC_SENTRY_DSN: <base64-encoded-sentry-dsn>
+---
+apiVersion: cloud.google.com/v1
+kind: PubSubTopic
+metadata:
+  name: content-analysis
+spec:
+  project: PROJECT_ID
+---
+apiVersion: cloud.google.com/v1
+kind: PubSubSubscription
+metadata:
+  name: content-analysis-sub
+spec:
+  project: PROJECT_ID
+  topic: content-analysis
+  ackDeadlineSeconds: 600
+  messageRetentionDuration: 604800s
+  expirationPolicy:
+    ttl: 2678400s
+---
+apiVersion: cloud.google.com/v1
+kind: PubSubTopic
+metadata:
+  name: batch-processing
+spec:
+  project: PROJECT_ID
+---
+apiVersion: cloud.google.com/v1
+kind: CloudSchedulerJob
+metadata:
+  name: batch-index-refresh
+spec:
+  project: PROJECT_ID
+  schedule: "0 2 * * *"
+  timeZone: "UTC"
+  pubsubTarget:
+    topicName: projects/PROJECT_ID/topics/batch-processing
+    data: "refresh_index"
+---
+apiVersion: storage.gcp.com/v1
+kind: Bucket
+metadata:
+  name: misinformation-storage-bucket
+spec:
+  project: PROJECT_ID
+  location: us-central1
+  uniformBucketLevelAccess:
+    enabled: true
+  lifecycle:
+    rule:
+    - condition:
+        age: 90
+      action:
+        type: Delete
+---
+apiVersion: firestore.gcp.com/v1
+kind: Database
+metadata:
+  name: misinformation-db
+spec:
+  project: PROJECT_ID
+  location: us-central1
+  type: FIRESTORE_NATIVE
+---
+apiVersion: bigquery.gcp.com/v1
+kind: Dataset
+metadata:
+  name: misinformation_analytics
+spec:
+  project: PROJECT_ID
+  location: us-central1
+  description: "Analytics dataset for misinformation detection platform"
+  access:
+  - role: READER
+    userByEmail: service-account@PROJECT_ID.iam.gserviceaccount.com
+  - role: WRITER
+    userByEmail: service-account@PROJECT_ID.iam.gserviceaccount.com
