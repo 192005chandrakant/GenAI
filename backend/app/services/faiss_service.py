@@ -30,6 +30,7 @@ class FAISSService:
         self.index_path = settings.FAISS_INDEX_PATH
         self.dimension = settings.FAISS_DIMENSION
         self.nprobe = settings.FAISS_NPROBE
+        self.use_mock = settings.USE_MOCKS
         
         # Initialize FAISS index
         self.index = None
@@ -37,7 +38,19 @@ class FAISSService:
         self.claim_embeddings = []
         
         # Firestore client for metadata
-        self.db = firestore.Client()
+        try:
+            if not self.use_mock:
+                self.db = firestore.Client()
+                logger.info("FAISS Service initialized with Firestore")
+            else:
+                print("🔄 Using mock FAISS service (USE_MOCKS=True)")
+                self.db = None
+                
+        except Exception as e:
+            print(f"Failed to initialize Firestore for FAISS: {str(e)}")
+            print("🔄 Falling back to mock FAISS service")
+            self.use_mock = True
+            self.db = None
         
         logger.info("FAISS Service initialized")
     
@@ -109,6 +122,25 @@ class FAISSService:
         Returns:
             List of similar claims with metadata
         """
+        if self.use_mock:
+            # Return mock similar claims for development
+            return [
+                {
+                    "claim_id": "mock_claim_1",
+                    "similarity": 0.85,
+                    "claim_text": "Mock similar claim for development",
+                    "source": "Mock Source",
+                    "date": datetime.utcnow().isoformat()
+                },
+                {
+                    "claim_id": "mock_claim_2", 
+                    "similarity": 0.75,
+                    "claim_text": "Another mock claim for testing",
+                    "source": "Mock Source 2",
+                    "date": datetime.utcnow().isoformat()
+                }
+            ]
+        
         try:
             if self.index is None:
                 await self.initialize_index()
@@ -457,3 +489,7 @@ class FAISSService:
             
         except Exception as e:
             logger.error(f"Error removing claim metadata: {str(e)}")
+
+
+# Create a singleton instance
+faiss_service = FAISSService()

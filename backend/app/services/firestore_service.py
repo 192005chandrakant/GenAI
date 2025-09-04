@@ -30,21 +30,44 @@ class FirestoreService:
     
     def __init__(self):
         """Initialize Firestore client."""
+        self.use_mock = False
         try:
-            self.db = firestore.Client(project=settings.google_cloud_project)
-            self.users_collection = self.db.collection("users")
-            self.reports_collection = self.db.collection("reports")
-            self.content_collection = self.db.collection("content_analysis")
-            self.points_collection = self.db.collection("points_transactions")
-            self.learning_collection = self.db.collection("learning_modules")
-            self.quiz_collection = self.db.collection("quiz_submissions")
+            if settings.use_mocks or settings.google_cloud_project == "local-gcp-project":
+                logger.info("Using mock Firestore service")
+                self.use_mock = True
+                self.db = None
+            else:
+                self.db = firestore.Client(project=settings.google_cloud_project)
+                self.users_collection = self.db.collection("users")
+                self.reports_collection = self.db.collection("reports")
+                self.content_collection = self.db.collection("content_analysis")
+                self.points_collection = self.db.collection("points_transactions")
+                self.learning_collection = self.db.collection("learning_modules")
+                self.quiz_collection = self.db.collection("quiz_submissions")
+                logger.info("Firestore client initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize Firestore client: {str(e)}")
-            raise
+            logger.warning(f"Failed to initialize Firestore client: {str(e)}")
+            logger.info("Falling back to mock Firestore service")
+            self.use_mock = True
+            self.db = None
     
     # User Operations
     async def create_user(self, user_data: UserCreate) -> UserResponse:
         """Create a new user."""
+        if self.use_mock:
+            logger.info(f"Mock: Creating user {user_data.email}")
+            return UserResponse(
+                uid=user_data.uid,
+                email=user_data.email,
+                name=user_data.name or "Mock User",
+                display_name=user_data.display_name,
+                profile_image=user_data.profile_image,
+                role=user_data.role,
+                created_at=datetime.now(),
+                points=0,
+                level=1
+            )
+        
         try:
             user_doc = {
                 "email": user_data.email,

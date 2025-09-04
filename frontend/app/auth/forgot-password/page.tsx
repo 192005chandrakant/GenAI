@@ -50,37 +50,46 @@ export default function ForgotPasswordPage() {
 
   if (isEmailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-4">
+        {/* Back to Home Button */}
+        <Link 
+          href="/"
+          className="fixed top-4 left-4 z-10 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Home
+        </Link>
+
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-center">
             <div className="mb-6">
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <Mail className="w-8 h-8 text-green-600" />
+              <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                <Mail className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
-              <p className="text-gray-600">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Check your email</h1>
+              <p className="text-gray-600 dark:text-gray-300">
                 We&apos;ve sent a password reset link to {form.getValues('email')}
               </p>
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Didn&apos;t receive the email? Check your spam folder or try again.
               </p>
               <Button 
                 onClick={() => setIsEmailSent(false)}
                 variant="outline"
-                className="w-full"
+                className="w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Try again
               </Button>
               <Link href="/auth/login">
-                <Button variant="ghost" className="w-full">
+                <Button variant="ghost" className="w-full text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to login
                 </Button>
@@ -93,21 +102,30 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 p-4">
+      {/* Back to Home Button */}
+      <Link 
+        href="/"
+        className="fixed top-4 left-4 z-10 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Home
+      </Link>
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center space-x-2 mb-4">
-              <Shield className="w-10 h-10 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-800">MisinfoGuard</span>
+              <Shield className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+              <span className="text-2xl font-bold text-gray-800 dark:text-white">MisinfoGuard</span>
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">Forgot Password</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Forgot Password</h1>
+            <p className="text-gray-600 dark:text-gray-300">
               Enter your email address and we&apos;ll send you a link to reset your password
             </p>
           </div>
@@ -119,11 +137,11 @@ export default function ForgotPasswordPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-gray-700 dark:text-gray-200">Email</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <Input placeholder="you@example.com" {...field} className="pl-10" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        <Input placeholder="you@example.com" {...field} className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400" />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -132,7 +150,7 @@ export default function ForgotPasswordPage() {
               />
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600" 
                 disabled={isLoading}
                 loading={isLoading}
               >
@@ -144,7 +162,7 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-6 text-center">
             <Link href="/auth/login">
-              <Button variant="ghost" className="text-sm">
+              <Button variant="ghost" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to login
               </Button>

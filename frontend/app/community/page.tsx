@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, TrendingUp, Award, Filter, Search, MessageCircle, Loader2, ThumbsUp, Eye, Flag, Share2 } from 'lucide-react';
-import MainLayout from '../../components/layout/MainLayout';
 import { formatTimestamp } from '../../lib/utils';
 import CredibilityBadge from '../../components/common/CredibilityBadge';
 import { toast } from 'react-hot-toast';
 import { useRequireAuth, usePageView } from '@/hooks';
 import apiClient from '@/lib/api';
+import PageLayout from '../layouts/PageLayout';
 
 interface CommunityPost {
   id: string;
@@ -232,17 +232,17 @@ export default function CommunityPage() {
 
   if (status === 'loading') {
     return (
-      <MainLayout>
+      <PageLayout>
         <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <p className="text-lg font-medium text-gray-900">Loading authentication...</p>
+          <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
+          <p className="text-lg font-medium text-gray-900 dark:text-white">Loading authentication...</p>
         </div>
-      </MainLayout>
+      </PageLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <PageLayout>
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <section className="mb-10">
@@ -503,6 +503,6 @@ export default function CommunityPage() {
           </button>
         </div>
       </div>
-    </MainLayout>
+    </PageLayout>
   );
 }

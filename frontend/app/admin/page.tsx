@@ -17,8 +17,8 @@ import {
   MessageSquare,
   Clock
 } from 'lucide-react';
-import MainLayout from '../../components/layout/MainLayout';
 import { toast } from 'react-hot-toast';
+import PageLayout from '../layouts/PageLayout';
 
 interface AdminStats {
   totalUsers: number;
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <MainLayout>
+    <PageLayout requireAuth adminOnly>
       <div className="max-w-7xl mx-auto">
         {/* Admin Header */}
         <div className="mb-8">
@@ -616,6 +616,6 @@ export default function AdminDashboard() {
           </motion.div>
         )}
       </div>
-    </MainLayout>
+    </PageLayout>
   );
 }

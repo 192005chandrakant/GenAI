@@ -17,12 +17,12 @@ import {
   Settings,
   Loader2
 } from 'lucide-react';
-import MainLayout from '../../components/layout/MainLayout';
 import apiClient, { CheckResponse } from '../../lib/api';
 import { toast } from 'react-hot-toast';
 import CredibilityBadge from '../../components/common/CredibilityBadge';
 import { useRequireAuth, useUserProfile } from '@/hooks';
 import { useAnalysisStore } from '@/lib/store';
+import PageLayout from '../layouts/PageLayout';
 
 interface DashboardStats {
   totalChecks: number;
@@ -153,17 +153,17 @@ export default function DashboardPage() {
 
   if (status === 'loading') {
     return (
-      <MainLayout>
+      <PageLayout requireAuth>
         <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <p className="text-lg font-medium text-gray-900">Loading dashboard...</p>
+          <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
+          <p className="text-lg font-medium text-gray-900 dark:text-white">Loading dashboard...</p>
         </div>
-      </MainLayout>
+      </PageLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <PageLayout requireAuth>
       <div className="max-w-7xl mx-auto">
         {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8">
@@ -537,6 +537,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-    </MainLayout>
+    </PageLayout>
   );
 }

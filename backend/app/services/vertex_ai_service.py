@@ -31,22 +31,39 @@ class VertexAIService:
         """Initialize Vertex AI service."""
         self.project_id = settings.GOOGLE_CLOUD_PROJECT
         self.location = settings.VERTEX_AI_LOCATION
+        self.use_mock = settings.USE_MOCKS  # Start with settings value
         
-        # Initialize Vertex AI
-        vertexai.init(project=self.project_id, location=self.location)
-        
-        # Initialize models
-        self.gemini_flash = GenerativeModel(settings.VERTEX_AI_MODEL_GEMINI_FLASH)
-        self.gemini_pro = GenerativeModel(settings.VERTEX_AI_MODEL_GEMINI_PRO)
-        self.embedding_model = TextEmbeddingModel.from_pretrained(settings.VERTEX_AI_MODEL_EMBEDDING)
+        try:
+            # Only try to initialize if not using mocks
+            if not self.use_mock:
+                # Initialize Vertex AI
+                vertexai.init(project=self.project_id, location=self.location)
+                
+                # Initialize models
+                self.gemini_flash = GenerativeModel(settings.VERTEX_AI_MODEL_GEMINI_FLASH)
+                self.gemini_pro = GenerativeModel(settings.VERTEX_AI_MODEL_GEMINI_PRO)
+                self.embedding_model = TextEmbeddingModel.from_pretrained(settings.VERTEX_AI_MODEL_EMBEDDING)
+                
+                logger.info(f"Vertex AI Service initialized for project {self.project_id}")
+            else:
+                print("🔄 Using mock Vertex AI services (USE_MOCKS=True)")
+                self.gemini_flash = None
+                self.gemini_pro = None
+                self.embedding_model = None
+            
+        except Exception as e:
+            print(f"Failed to initialize Vertex AI services: {str(e)}")
+            print("🔄 Falling back to mock services for development")
+            self.use_mock = True
+            self.gemini_flash = None
+            self.gemini_pro = None
+            self.embedding_model = None
         
         # Model configuration
         self.default_model = settings.AI_MODEL_DEFAULT
         self.escalation_threshold = settings.AI_MODEL_ESCALATION_THRESHOLD
         self.max_tokens = settings.AI_MODEL_MAX_TOKENS
         self.temperature = settings.AI_MODEL_TEMPERATURE
-        
-        logger.info(f"Vertex AI Service initialized for project {self.project_id}")
     
     async def analyze_text_content(
         self, 
@@ -65,6 +82,29 @@ class VertexAIService:
         Returns:
             CheckAnalysis object with results
         """
+        if self.use_mock:
+            # Return mock analysis for development
+            return CheckAnalysis(
+                verdict=VerdictType.UNCERTAIN,
+                confidence=0.7,
+                evidence=[
+                    Evidence(
+                        description="Mock analysis - unable to verify claim",
+                        source="Mock Vertex AI Service",
+                        reliability=0.7,
+                        relevance=0.8
+                    )
+                ],
+                citations=[
+                    Citation(
+                        text="Mock citation for development",
+                        source="Mock Source"
+                    )
+                ],
+                reasoning="This is a mock response from the development environment. Vertex AI credentials not configured.",
+                sources_analyzed=1
+            )
+        
         start_time = time.time()
         
         try:
@@ -706,3 +746,7 @@ class VertexAIService:
         except Exception as e:
             logger.error(f"Error parsing quiz response: {str(e)}")
             return []
+
+
+# Create a singleton instance
+vertex_ai_service = VertexAIService()

@@ -2,9 +2,12 @@
 Main FastAPI application for the Misinformation Detection API.
 """
 import logging
+import socket
+import os
+from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
@@ -18,23 +21,83 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Global server info
+SERVER_INFO = {
+    "start_time": None,
+    "host": None,
+    "port": None,
+    "urls": {},
+    "environment": "development" if settings.USE_MOCKS else "production"
+}
+
+def get_server_urls(host: str, port: int) -> dict:
+    """Generate server URLs dynamically."""
+    # Determine the actual host
+    if host == "0.0.0.0":
+        hostname = socket.gethostname()
+        try:
+            local_ip = socket.gethostbyname(hostname)
+        except:
+            local_ip = "127.0.0.1"
+        hosts = ["localhost", "127.0.0.1", local_ip, hostname]
+    else:
+        hosts = [host]
+    
+    urls = {}
+    for h in hosts:
+        base_url = f"http://{h}:{port}"
+        urls[h] = {
+            "base": base_url,
+            "dashboard": f"{base_url}/api/v1/dashboard",
+            "docs": f"{base_url}/docs",
+            "redoc": f"{base_url}/redoc",
+            "status": f"{base_url}/api/v1/dashboard/status",
+            "health": f"{base_url}/health"
+        }
+    
+    return urls
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    logger.info("Starting Misinformation Detection API...")
+    start_time = datetime.utcnow()
+    SERVER_INFO["start_time"] = start_time
+    SERVER_INFO["host"] = settings.host
+    SERVER_INFO["port"] = settings.port
+    SERVER_INFO["urls"] = get_server_urls(settings.host, settings.port)
+    
     try:
         # Test database connection
         await firestore_service.get_analytics_summary()
-        logger.info("Database connection successful")
     except Exception as e:
-        logger.error(f"Database connection failed: {str(e)}")
+        logger.warning("Database connection not available in mock mode")
+    
+    # Print server startup information
+    logger.info("=" * 60)
+    logger.info("🚀 GenAI Backend Server is running!")
+    logger.info("=" * 60)
+    logger.info("Environment: %s", SERVER_INFO["environment"])
+    logger.info("Available URLs:")
+    
+    # Get local URLs for easy access
+    local_urls = SERVER_INFO["urls"].get("localhost", {})
+    if local_urls:
+        logger.info("📚 API Documentation: %s", local_urls["docs"])
+        logger.info("📖 ReDoc Documentation: %s", local_urls["redoc"])
+        logger.info("🎯 Main API: %s", local_urls["base"])
+        logger.info("📊 Dashboard: %s", local_urls["dashboard"])
+        logger.info("💓 Health Check: %s", local_urls["health"])
+    
+    logger.info("=" * 60)
+    logger.info("Press CTRL+C to stop the server")
+    logger.info("=" * 60)
     
     yield
     
     # Shutdown
-    logger.info("Shutting down Misinformation Detection API...")
+    logger.info("🛑 Shutting down GenAI Backend Server...")
 
 
 # Create FastAPI app
@@ -63,11 +126,62 @@ app.include_router(api_router, prefix=settings.api_v1_str)
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Root endpoint - redirect to dashboard."""
+    return RedirectResponse(url="/api/v1/dashboard")
+
+
+@app.get("/api")
+async def api_info():
+    """Dynamic API information endpoint."""
     return {
-        "message": "Welcome to Misinformation Detection API",
+        "message": "Welcome to GenAI Misinformation Detection API",
         "version": settings.version,
-        "docs": "/api/docs"
+        "environment": SERVER_INFO["environment"],
+        "server": {
+            "host": SERVER_INFO["host"],
+            "port": SERVER_INFO["port"],
+            "start_time": SERVER_INFO["start_time"].isoformat() if SERVER_INFO["start_time"] else None,
+            "uptime_seconds": int((datetime.utcnow() - SERVER_INFO["start_time"]).total_seconds()) if SERVER_INFO["start_time"] else 0
+        },
+        "urls": SERVER_INFO["urls"],
+        "endpoints": {
+            "dashboard": "/api/v1/dashboard",
+            "documentation": "/api/v1/docs-api",
+            "openapi_docs": "/docs",
+            "redoc": "/redoc",
+            "status": "/api/v1/dashboard/status",
+            "health": "/health"
+        }
+    }
+
+
+@app.get("/server-info")
+async def server_info():
+    """Live server information endpoint."""
+    uptime = datetime.utcnow() - SERVER_INFO["start_time"] if SERVER_INFO["start_time"] else None
+    
+    return {
+        "server": {
+            "name": "GenAI Backend Server", 
+            "version": settings.version,
+            "environment": SERVER_INFO["environment"],
+            "host": SERVER_INFO["host"],
+            "port": SERVER_INFO["port"],
+            "start_time": SERVER_INFO["start_time"].isoformat() if SERVER_INFO["start_time"] else None,
+            "uptime": str(uptime) if uptime else None,
+            "uptime_seconds": int(uptime.total_seconds()) if uptime else 0,
+            "status": "running"
+        },
+        "urls": SERVER_INFO["urls"],
+        "features": [
+            "AI-powered fact checking",
+            "Multi-language support", 
+            "Real-time analysis",
+            "Educational content",
+            "Community reporting",
+            "Comprehensive dashboard",
+            "Live monitoring"
+        ]
     }
 
 

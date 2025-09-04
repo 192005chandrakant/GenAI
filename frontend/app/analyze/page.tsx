@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FileSearch, Loader2, AlertTriangle } from 'lucide-react';
-import MainLayout from '../../components/layout/MainLayout';
 import UploadZone from '../../components/common/UploadZone';
 import apiClient, { CheckResponse, CheckRequest } from '../../lib/api';
 import ResultCard from '../../components/common/ResultCard';
@@ -12,8 +11,9 @@ import { detectLanguage } from '../../lib/utils';
 import { toast } from 'react-hot-toast';
 import { useRequireAuth, useContentChecker, usePageView } from '@/hooks';
 import { useAnalysisStore } from '@/lib/store';
+import PageLayout from '../layouts/PageLayout';
 
-export default function AnalyzePage() {
+function AnalyzePageContent() {
   // Use custom hooks
   const { session, status } = useRequireAuth();
   const { checkContent, isLoading: isChecking } = useContentChecker();
@@ -121,24 +121,21 @@ export default function AnalyzePage() {
 
   if (status === 'loading') {
     return (
-      <MainLayout>
-        <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <p className="text-lg font-medium text-gray-900">Loading authentication...</p>
-        </div>
-      </MainLayout>
+      <div className="flex flex-col items-center justify-center py-16">
+        <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
+        <p className="text-lg font-medium text-gray-900 dark:text-gray-100">Loading authentication...</p>
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="max-w-4xl mx-auto">
-        {!result ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+    <div className="max-w-4xl mx-auto">
+      {!result ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
             <div className="text-center mb-10">
               <h1 className="text-3xl font-bold text-gray-900 mb-3">Analyze Content</h1>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -199,6 +196,20 @@ export default function AnalyzePage() {
           </div>
         )}
       </div>
-    </MainLayout>
+    );
+}
+
+export default function AnalyzePage() {
+  return (
+    <PageLayout>
+      <Suspense fallback={
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="w-10 h-10 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
+          <p className="text-xl font-medium text-gray-900 dark:text-gray-100">Loading...</p>
+        </div>
+      }>
+        <AnalyzePageContent />
+      </Suspense>
+    </PageLayout>
   );
 }

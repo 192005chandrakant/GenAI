@@ -26,9 +26,9 @@ class FactCheckService:
     
     def __init__(self):
         """Initialize Fact Check service."""
-        self.api_key = settings.
-        self.api_url = settings.FACT_CHECK_API_URL
-        self.rss_feeds = settings.RSS_FEEDS
+        self.api_key = settings.FACT_CHECK_API_KEY
+        self.api_url = getattr(settings, 'FACT_CHECK_API_URL', 'https://factchecktools.googleapis.com/v1alpha1/claims:search')
+        self.rss_feeds = getattr(settings, 'RSS_FEEDS', [])
         self.session = None
         
         logger.info("Fact Check Service initialized")
@@ -458,3 +458,7 @@ class FactCheckService:
             
         except Exception:
             return datetime.utcnow()
+
+
+# Create a singleton instance
+fact_check_service = FactCheckService()

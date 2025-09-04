@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Search, Filter, Bookmark, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
-import MainLayout from '../../components/layout/MainLayout';
 import { toast } from 'react-hot-toast';
 import { useRequireAuth, usePageView } from '@/hooks';
 import apiClient from '@/lib/api';
+import PageLayout from '../layouts/PageLayout';
 
 interface LearningModule {
   id: string;
@@ -214,17 +214,17 @@ export default function LearnPage() {
 
   if (status === 'loading') {
     return (
-      <MainLayout>
+      <PageLayout>
         <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <p className="text-lg font-medium text-gray-900">Loading authentication...</p>
+          <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
+          <p className="text-lg font-medium text-gray-900 dark:text-white">Loading authentication...</p>
         </div>
-      </MainLayout>
+      </PageLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <PageLayout>
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <section className="text-center mb-12">
@@ -448,6 +448,6 @@ export default function LearnPage() {
           )}
         </section>
       </div>
-    </MainLayout>
+    </PageLayout>
   );
 }

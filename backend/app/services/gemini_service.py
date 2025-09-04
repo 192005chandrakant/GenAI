@@ -25,9 +25,9 @@ class GeminiService:
     
     def __init__(self):
         """Initialize Gemini service with API key."""
-        genai.configure(api_key=settings.gemini_api_key)
-        self.text_model = genai.GenerativeModel(settings.gemini_model)
-        self.vision_model = genai.GenerativeModel(settings.gemini_vision_model)
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        self.text_model = genai.GenerativeModel(settings.GEMINI_MODEL)
+        self.vision_model = genai.GenerativeModel(settings.GEMINI_VISION_MODEL)
         
     async def analyze_text_content(
         self, 

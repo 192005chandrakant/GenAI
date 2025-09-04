@@ -7,21 +7,18 @@ passlib[bcrypt]==1.7.4
 python-dotenv==1.1.1
 starlette==0.47.3
 
-# System monitoring
-psutil==6.0.0
-
 # Google Cloud services (compatible versions)
 google-cloud-firestore==2.21.0
 google-cloud-bigquery==3.36.0
 google-cloud-storage==2.19.0
 google-cloud-translate==3.21.1
-google-cloud-aiplatform>=1.38.1
+google-cloud-aiplatform==1.71.1
 google-cloud-core==2.4.3
 google-cloud-resource-manager==1.14.2
 google-cloud-audit-log==0.3.2
 
 # AI and Machine Learning
-vertexai>=1.38.1
+vertexai==1.71.1
 google-generativeai==0.8.5
 google-ai-generativelanguage==0.6.15
 

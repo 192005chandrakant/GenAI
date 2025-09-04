@@ -1,7 +1,12 @@
 fastapi==0.116.1
-uvicorn==0.24.0
-pydantic==2.11.7
+uvicorn[standard]==0.24.0
 python-dotenv==1.1.1
-aiohttp==3.12.15
-feedparser==6.0.11
-beautifulsoup4==4.13.5
+pydantic==2.11.7
+pydantic-settings==2.10.1
+google-cloud-aiplatform>=1.38.1
+google-cloud-firestore==2.21.0
+google-cloud-translate==3.21.1
+google-cloud-storage==2.19.0
+firebase-admin==6.2.0
+httpx==0.28.1
+python-multipart==0.0.20

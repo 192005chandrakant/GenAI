@@ -1,8 +1,5 @@
 import NextAuth from 'next-auth';
-import { authOptions as nextAuthOptions } from '@/lib/auth';
-
-// Use the authOptions from our centralized config
-export const authOptions = nextAuthOptions;
+import { authOptions } from '@/lib/auth';
 
 const handler = NextAuth(authOptions);
 
