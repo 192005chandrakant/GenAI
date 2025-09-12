@@ -18,13 +18,26 @@ service-account-key.json
 credentials.json
 *-credentials.json
 gcp-key.json
+gen.json
+*.json.key
+*firebase*.json
 firebase-adminsdk-*.json
+*adminsdk*.json
+genai-*.json
+
+# Explicitly ignore specific secret files found in the repo
+backend/gen.json
+backend/secrets/gen.json
+backend/secrets/genai-65556-firebase-adminsdk-fbsvc-faee9cef00.json
+frontend/secrets/
 
 # API Keys and Secrets
 secrets/
 .secrets
 config/secrets.yaml
 config/secrets.json
+*secret*.json
+*key*.json
 
 # =============================================================================
 # PYTHON / FASTAPI BACKEND
