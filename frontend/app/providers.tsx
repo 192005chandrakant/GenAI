@@ -1,11 +1,11 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { SessionProvider } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { useRouter } from 'next/navigation'
 import { Spinner } from '../components/ui/spinner'
+import { AuthProvider } from '../components/auth/AuthProvider'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -56,70 +56,57 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
 
 // Theme provider
 function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'light' | 'dark' | undefined>(undefined);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'loading'>('loading');
+  const [mounted, setMounted] = useState(false);
 
+  // 1. Effect for initial theme setup on mount
   useEffect(() => {
-    // On first mount, check for system preference or stored preference
-    const storedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    const initialTheme = storedTheme || systemPreference;
-    
-    setTheme(initialTheme);
-    
-    if (initialTheme === 'dark') {
+    setMounted(true);
+    try {
+      const storedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+      const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      const initialTheme = storedTheme || systemPreference;
+      setTheme(initialTheme);
+    } catch (error) {
+      console.warn('Could not access theme from localStorage or system preference.', error);
+      setTheme('light'); // Fallback to light theme
+    }
+  }, []);
+
+  // 2. Effect to apply theme changes to the DOM and update window object
+  useEffect(() => {
+    if (theme === 'loading') return;
+
+    // Apply class to <html> element
+    if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
 
-    // Listen for changes to system preference
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      // Only update if the user hasn't set a preference
-      if (!localStorage.getItem('theme')) {
-        const newTheme = e.matches ? 'dark' : 'light';
-        setTheme(newTheme);
-        
-        if (newTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-  
-  // Expose theme context to window for components that need to toggle it
-  useEffect(() => {
-    if (theme === undefined) return;
-    
-    // Create a global theme object that components can access
+    try {
+      // Persist theme to localStorage
+      localStorage.setItem('theme', theme);
+    } catch (error) {
+      console.warn('Could not save theme to localStorage.', error);
+    }
+
+    // Update the global theme object for the toggle function
     window.__theme = {
       current: theme,
       toggle: () => {
-        const newTheme = theme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-        localStorage.setItem('theme', newTheme);
-        
-        if (newTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }
+        // This function will be redefined on each theme change,
+        // ensuring it always has the correct current theme.
+        setTheme(prevTheme => (prevTheme === 'dark' ? 'light' : 'dark'));
+      },
     };
   }, [theme]);
 
-  // Only render children once we've determined the theme to avoid flashing
-  if (theme === undefined) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
+  // Avoid rendering children until theme is determined to prevent flash of unstyled content
+  if (!mounted || theme === 'loading') {
+    // You can return a loader here, but returning children is fine to avoid layout shifts
+    // if you handle the flash of content with CSS.
+    return <>{children}</>;
   }
 
   return <>{children}</>;
@@ -151,13 +138,11 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <SessionProvider>
+      <AuthProvider>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          <ThemeProvider>{children}</ThemeProvider>
         </QueryClientProvider>
-      </SessionProvider>
+      </AuthProvider>
     </ErrorBoundary>
-  )
+  );
 }

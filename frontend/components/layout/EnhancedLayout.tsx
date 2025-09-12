@@ -2,9 +2,9 @@ import React, { ReactNode, useEffect, useState } from 'react';
 import ImprovedNavbar from './ImprovedNavbar';
 import Footer from './Footer';
 import { cn } from '../../lib/utils';
-import { useSession } from 'next-auth/react';
 import { Spinner } from '../ui/spinner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { onAuthStateChange } from '@/lib/auth';
 
 interface EnhancedLayoutProps {
   children: ReactNode;
@@ -27,9 +27,16 @@ const EnhancedLayout = ({
   loading = false,
   requireAuth = false,
 }: EnhancedLayoutProps) => {
-  const { status } = useSession();
+  const [authStatus, setAuthStatus] = useState('loading');
   const [showBackButton, setShowBackButton] = useState(false);
   const [pageTransition, setPageTransition] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setAuthStatus(user ? 'authenticated' : 'unauthenticated');
+    });
+    return () => unsubscribe();
+  }, []);
   
   // Handle scroll for back to top button
   useEffect(() => {
@@ -62,7 +69,7 @@ const EnhancedLayout = ({
   };
   
   // Check if we should show loading state
-  const isLoading = loading || (requireAuth && status === 'loading');
+  const isLoading = loading || (requireAuth && authStatus === 'loading');
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">

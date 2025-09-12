@@ -6,6 +6,9 @@ import { Settings, User, LogOut, ChevronDown, Bell, Lock, Key, UserCheck, Eye, M
 import MainLayout from '../../../components/layout/MainLayout';
 import { toast } from 'react-hot-toast';
 
+import { useAuth } from '@/components/auth/AuthProvider';
+import { signOut } from '@/lib/auth';
+
 interface SettingsCategory {
   id: string;
   title: string;
@@ -20,6 +23,7 @@ interface LanguageOption {
 }
 
 export default function SettingsPage() {
+  const { user, loading } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>('account');
   const [passwordValues, setPasswordValues] = useState({
     current: '',
@@ -126,8 +130,8 @@ export default function SettingsPage() {
     // In a real app, would call an API to update notification settings
   };
   
-  const handleLogout = () => {
-    // In a real app, would call authentication service to log out
+  const handleLogout = async () => {
+    await signOut();
     toast.success('Logged out successfully');
     // Then redirect to login page
   };
@@ -195,7 +199,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          defaultValue="John Smith"
+                          defaultValue={user?.displayName || ''}
                           className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
@@ -205,7 +209,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          defaultValue="johnsmith"
+                          defaultValue={user?.displayName?.split(' ')[0] || ''}
                           className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
@@ -215,8 +219,9 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="email"
-                          defaultValue="john.smith@example.com"
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          defaultValue={user?.email || ''}
+                          disabled
+                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
                         />
                       </div>
                       <div>
@@ -225,7 +230,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="tel"
-                          defaultValue="+91 98765 43210"
+                          defaultValue={user?.phoneNumber || ''}
                           className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
@@ -237,7 +242,11 @@ export default function SettingsPage() {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Picture</h3>
                     <div className="flex items-center">
                       <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-6">
-                        <User className="w-10 h-10 text-gray-500" />
+                        {user?.photoURL ? (
+                          <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-10 h-10 text-gray-500" />
+                        )}
                       </div>
                       <div className="space-x-3">
                         <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition">

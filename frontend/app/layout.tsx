@@ -35,14 +35,13 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#111827' },
-  ],
   appleWebApp: {
     title: 'MisinfoGuard',
     statusBarStyle: 'black-translucent',
     capable: true,
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 }
 
@@ -64,6 +63,42 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // Suppress MetaMask and other extension errors
+            if (typeof window !== 'undefined') {
+              const originalError = console.error;
+              console.error = (...args) => {
+                const message = args.join(' ').toLowerCase();
+                // Suppress MetaMask and extension-related errors
+                if (
+                  message.includes('metamask') || 
+                  message.includes('chrome-extension://') ||
+                  message.includes('failed to connect to metamask') ||
+                  message.includes('extension not found')
+                ) {
+                  return; // Suppress these errors
+                }
+                originalError.apply(console, args);
+              };
+              
+              // Suppress unhandled promise rejections from extensions
+              window.addEventListener('unhandledrejection', function(event) {
+                const message = event.reason?.message?.toLowerCase() || '';
+                if (
+                  message.includes('metamask') || 
+                  message.includes('extension') ||
+                  message.includes('chrome-extension')
+                ) {
+                  event.preventDefault();
+                  return;
+                }
+              });
+            }
+          `
+        }} />
+      </head>
       <body className={`${inter.className} h-full bg-gray-50 dark:bg-gray-900 antialiased`}>
         <Providers>
           <div className="min-h-full">

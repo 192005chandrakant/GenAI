@@ -7,19 +7,21 @@ import {
   Users, ChevronRight, Sun, Moon, Info 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession, signOut } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { signOut } from '@/lib/auth';
 import { cn } from '../../lib/utils';
 
 const ImprovedNavbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session, status } = useSession();
 
   // Initialize dark mode state from global theme
   useEffect(() => {
@@ -55,18 +57,18 @@ const ImprovedNavbar = () => {
 
   // Close the menu when route changes
   useEffect(() => {
-    setIsMenuOpen(false);
+    setMobileMenuOpen(false);
   }, [pathname]);
 
   // Toggle functions
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const toggleMenu = () => setMobileMenuOpen(!isMobileMenuOpen);
   const toggleUserMenu = () => {
-    setIsUserMenuOpen(!isUserMenuOpen);
+    setProfileMenuOpen(!isProfileMenuOpen);
     setIsNotificationsOpen(false);
   };
   const toggleNotifications = () => {
     setIsNotificationsOpen(!isNotificationsOpen);
-    setIsUserMenuOpen(false);
+    setProfileMenuOpen(false);
   };
   
   // Updated toggleDarkMode to use global theme system
@@ -78,8 +80,8 @@ const ImprovedNavbar = () => {
   };
   
   const closeAllMenus = () => {
-    setIsMenuOpen(false);
-    setIsUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    setProfileMenuOpen(false);
     setIsNotificationsOpen(false);
   };
 
@@ -91,8 +93,9 @@ const ImprovedNavbar = () => {
   };
 
   const handleSignOut = async () => {
-    await signOut({ redirect: true, callbackUrl: '/' });
+    await signOut();
     closeAllMenus();
+    router.push('/');
   };
 
   // Navigation links with icons
@@ -156,7 +159,7 @@ const ImprovedNavbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             {navLinks.map((link) => (
-              !link.authRequired || session ? (
+              !link.authRequired || user ? (
                 <Link 
                   key={link.path} 
                   href={link.path}
@@ -255,7 +258,7 @@ const ImprovedNavbar = () => {
             </div>
 
             {/* Auth Buttons / User Menu (Desktop) */}
-            {!session ? (
+            {!user ? (
               <div className="flex items-center space-x-2">
                 <Link 
                   href="/auth/login" 
@@ -278,20 +281,20 @@ const ImprovedNavbar = () => {
                   aria-label="User menu"
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden">
-                    {session.user?.image ? (
-                      <img src={session.user.image} alt={session.user.name || "User"} className="w-full h-full object-cover" />
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
                     ) : (
                       <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     )}
                   </div>
                   <div className="flex items-center">
-                    <span>{session.user?.name?.split(' ')[0] || "User"}</span>
+                    <span>{user?.displayName?.split(' ')[0] || "User"}</span>
                     <ChevronDown className="w-4 h-4 ml-1 opacity-70" />
                   </div>
                 </button>
 
                 <AnimatePresence>
-                  {isUserMenuOpen && (
+                  {isProfileMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -302,31 +305,19 @@ const ImprovedNavbar = () => {
                       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                         <div className="flex items-center">
                           <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden mr-3">
-                            {session.user?.image ? (
-                              <img src={session.user.image} alt={session.user.name || "User"} className="w-full h-full object-cover" />
+                            {user?.photoURL ? (
+                              <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
                             ) : (
                               <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{session.user?.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user?.email}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.displayName}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                           </div>
                         </div>
                         
-                        {session.user?.level && (
-                          <div className="mt-3 flex items-center">
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between text-xs mb-1">
-                                <span className="text-gray-500 dark:text-gray-400">Level {session.user.level}</span>
-                                <span className="text-gray-500 dark:text-gray-400">{session.user.points} pts</span>
-                              </div>
-                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                <div className="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min((session.user.points % 100) / 100 * 100, 100)}%` }}></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        
                       </div>
                       
                       <div className="py-1">
@@ -346,16 +337,7 @@ const ImprovedNavbar = () => {
                           <Settings className="w-4 h-4 mr-3" />
                           Account Settings
                         </Link>
-                        {session.user?.isAdmin && (
-                          <Link
-                            href="/admin"
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            onClick={closeAllMenus}
-                          >
-                            <Shield className="w-4 h-4 mr-3" />
-                            Admin Panel
-                          </Link>
-                        )}
+                        
                       </div>
                       
                       <div className="border-t border-gray-100 dark:border-gray-700 py-1">
@@ -376,7 +358,7 @@ const ImprovedNavbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            {session && (
+            {user && (
               <button
                 onClick={toggleNotifications}
                 className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -392,9 +374,9 @@ const ImprovedNavbar = () => {
             <button
               className="p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={toggleMenu}
-              aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
-              {isMenuOpen ? (
+              {isMobileMenuOpen ? (
                 <X className="h-6 w-6" />
               ) : (
                 <Menu className="h-6 w-6" />
@@ -406,7 +388,7 @@ const ImprovedNavbar = () => {
 
       {/* Mobile Menu */}
       <AnimatePresence>
-        {isMenuOpen && (
+        {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -416,42 +398,30 @@ const ImprovedNavbar = () => {
           >
             <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
               {/* User profile section (when logged in) */}
-              {session && (
+              {user && (
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden mr-3">
-                      {session.user?.image ? (
-                        <img src={session.user.image} alt={session.user.name || "User"} className="w-full h-full object-cover" />
+                      {user?.photoURL ? (
+                        <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
                       ) : (
                         <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                       )}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{session.user?.name || "User"}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user?.email}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{user?.displayName || "User"}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                     </div>
                   </div>
                   
-                  {session.user?.level && (
-                    <div className="mt-3 flex items-center">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-gray-500 dark:text-gray-400">Level {session.user.level}</span>
-                          <span className="text-gray-500 dark:text-gray-400">{session.user.points} pts</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                          <div className="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min((session.user.points % 100) / 100 * 100, 100)}%` }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  
                 </div>
               )}
               
               {/* Navigation Links */}
               <div className="px-2 py-3 space-y-1">
                 {navLinks.map((link) => (
-                  !link.authRequired || session ? (
+                  !link.authRequired || user ? (
                     <Link
                       key={link.path}
                       href={link.path}
@@ -506,7 +476,7 @@ const ImprovedNavbar = () => {
               
               {/* Auth Section */}
               <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
-                {!session ? (
+                {!user ? (
                   <div className="grid grid-cols-2 gap-3">
                     <Link
                       href="/auth/login"
@@ -525,18 +495,7 @@ const ImprovedNavbar = () => {
                   </div>
                 ) : (
                   <>
-                    {session.user?.isAdmin && (
-                      <Link
-                        href="/admin"
-                        className="block w-full px-4 py-2 text-left rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-2"
-                        onClick={closeAllMenus}
-                      >
-                        <div className="flex items-center">
-                          <Shield className="w-4 h-4 mr-3" />
-                          Admin Panel
-                        </div>
-                      </Link>
-                    )}
+                    
                     <Link
                       href="/dashboard/settings"
                       className="block w-full px-4 py-2 text-left rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-2"

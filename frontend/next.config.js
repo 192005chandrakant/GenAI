@@ -25,6 +25,47 @@ const nextConfig = {
       },
     ]
   },
+  // Performance optimization for chunks
+  webpack: (config, { isServer }) => {
+    // Optimize chunk size
+    config.optimization.splitChunks = {
+      chunks: 'all',
+      cacheGroups: {
+        default: false,
+        vendors: false,
+        // Vendor chunk for larger libraries
+        vendor: {
+          name: 'vendor',
+          chunks: 'all',
+          test: /node_modules/,
+          priority: 20,
+        },
+        // Create specific chunks for larger packages
+        firebase: {
+          name: 'firebase',
+          test: /[\\/]node_modules[\\/](firebase|@firebase)/,
+          chunks: 'all',
+          priority: 30,
+        },
+        react: {
+          name: 'react',
+          test: /[\\/]node_modules[\\/](react|react-dom)/,
+          chunks: 'all',
+          priority: 40,
+        },
+      },
+    };
+    
+    return config;
+  },
+  // Increase timeout for static generation/loading
+  staticPageGenerationTimeout: 120,
+  experimental: {
+    // Apply React optimizations
+    optimizeFonts: true,
+    optimizeCss: true,
+    scrollRestoration: true,
+  },
 }
 
 module.exports = nextConfig

@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
@@ -49,8 +49,8 @@ def get_server_urls(host: str, port: int) -> dict:
         urls[h] = {
             "base": base_url,
             "dashboard": f"{base_url}/api/v1/dashboard",
-            "docs": f"{base_url}/docs",
-            "redoc": f"{base_url}/redoc",
+            "docs": f"{base_url}/api/docs",
+            "redoc": f"{base_url}/api/redoc",
             "status": f"{base_url}/api/v1/dashboard/status",
             "health": f"{base_url}/health"
         }
@@ -100,13 +100,14 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Shutting down GenAI Backend Server...")
 
 
-# Create FastAPI app
+# Create FastAPI app - serve docs at both /docs and /api/docs 
 app = FastAPI(
     title=settings.project_name,
     version=settings.version,
     description="AI-powered misinformation detection and education platform",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    # Provide docs at multiple paths to avoid redirects
+    docs_url=None,  # We'll manually define the docs routes
+    redoc_url=None, # We'll manually define the redoc routes
     openapi_url="/api/openapi.json",
     lifespan=lifespan
 )
@@ -126,8 +127,67 @@ app.include_router(api_router, prefix=settings.api_v1_str)
 
 @app.get("/")
 async def root():
-    """Root endpoint - redirect to dashboard."""
-    return RedirectResponse(url="/api/v1/dashboard")
+    """Root endpoint - return API info directly instead of redirecting."""
+    uptime = datetime.utcnow() - SERVER_INFO["start_time"] if SERVER_INFO["start_time"] else None
+    
+    return {
+        "message": "Welcome to GenAI Misinformation Detection API",
+        "version": settings.version,
+        "status": "running",
+        "uptime": str(uptime) if uptime else None,
+        "endpoints": {
+            "dashboard": "/api/v1/dashboard",
+            "api_docs": "/api/docs",
+            "health": "/health"
+        }
+    }
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    """Serve Swagger UI at /docs."""
+    from fastapi.openapi.docs import get_swagger_ui_html
+    
+    return get_swagger_ui_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} - Swagger UI",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    )
+
+@app.get("/api/docs", include_in_schema=False)
+async def custom_api_swagger_ui_html():
+    """Serve Swagger UI at /api/docs."""
+    from fastapi.openapi.docs import get_swagger_ui_html
+    
+    return get_swagger_ui_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} - API Documentation",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    )
+
+@app.get("/redoc", include_in_schema=False)
+async def custom_redoc_html():
+    """Serve ReDoc at /redoc."""
+    from fastapi.openapi.docs import get_redoc_html
+    
+    return get_redoc_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} - ReDoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+    )
+
+@app.get("/api/redoc", include_in_schema=False)
+async def custom_api_redoc_html():
+    """Serve ReDoc at /api/redoc."""
+    from fastapi.openapi.docs import get_redoc_html
+    
+    return get_redoc_html(
+        openapi_url="/api/openapi.json",
+        title=f"{app.title} - API Reference",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+    )
 
 
 @app.get("/api")
@@ -146,9 +206,10 @@ async def api_info():
         "urls": SERVER_INFO["urls"],
         "endpoints": {
             "dashboard": "/api/v1/dashboard",
-            "documentation": "/api/v1/docs-api",
-            "openapi_docs": "/docs",
+            "api_docs": "/api/docs",
+            "docs": "/docs", 
             "redoc": "/redoc",
+            "api_redoc": "/api/redoc",
             "status": "/api/v1/dashboard/status",
             "health": "/health"
         }
@@ -183,6 +244,27 @@ async def server_info():
             "Live monitoring"
         ]
     }
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve favicon to prevent 404 errors."""
+    from fastapi.responses import FileResponse
+    import os
+    
+    # Check if favicon exists in a few possible locations
+    favicon_paths = [
+        os.path.join("public", "favicon.ico"),
+        os.path.join("static", "favicon.ico"),
+        os.path.join("app", "static", "favicon.ico")
+    ]
+    
+    for path in favicon_paths:
+        if os.path.isfile(path):
+            return FileResponse(path)
+    
+    # If favicon not found, return an empty response to prevent 404
+    return Response(content=b"", media_type="image/x-icon")
 
 
 @app.get("/health")

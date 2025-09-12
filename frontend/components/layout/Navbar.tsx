@@ -3,13 +3,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Shield, Menu, X, ChevronDown, LogIn, User, Settings, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '../auth/AuthProvider';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { user, userData, isGuest } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen);
@@ -25,12 +25,25 @@ const Navbar = () => {
     { name: 'Analyze', path: '/analyze' },
     { name: 'Learn', path: '/learn' },
     { name: 'Community', path: '/community' },
-    { name: 'Dashboard', path: '/dashboard', authRequired: true },
+    { 
+      name: 'Dashboard', 
+      path: '/dashboard', 
+      authRequired: true,
+      guestRedirect: '/auth/login?callbackUrl=/dashboard',
+      guestTooltip: 'Sign in to access your personal dashboard'
+    },
   ];
 
   const handleSignOut = async () => {
-    await signOut({ redirect: true, callbackUrl: '/' });
-    closeMenus();
+    try {
+      const { signOutUser } = await import('../../lib/firebase');
+      await signOutUser();
+      closeMenus();
+      // Redirect to home page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (
@@ -47,8 +60,25 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link) => (
-              !link.authRequired || session ? (
+            {navLinks.map((link) => {
+              // For auth-required routes when user is guest, show with special handling
+              if (link.authRequired && isGuest) {
+                return (
+                  <Link 
+                    key={link.path} 
+                    href={link.guestRedirect || '/auth/login'}
+                    className="text-gray-700 hover:text-blue-600 transition-colors relative group"
+                    title={link.guestTooltip}
+                  >
+                    {link.name}
+                    <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      {link.guestTooltip}
+                    </span>
+                  </Link>
+                );
+              }
+              
+              return (
                 <Link 
                   key={link.path} 
                   href={link.path}
@@ -60,13 +90,13 @@ const Navbar = () => {
                 >
                   {link.name}
                 </Link>
-              ) : null
-            ))}
+              );
+            })}
           </div>
 
           {/* Auth Buttons / User Menu (Desktop) */}
           <div className="hidden md:flex items-center space-x-4">
-            {!session ? (
+            {isGuest ? (
               <>
                 <Link href="/auth/register" className="btn btn-outline btn-sm">
                   Register
@@ -82,13 +112,13 @@ const Navbar = () => {
                   className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 focus:outline-none"
                 >
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-                    {session.user?.image ? (
-                      <img src={session.user.image} alt={session.user.name || "User"} className="w-full h-full object-cover" />
+                    {userData?.photoURL ? (
+                      <img src={userData.photoURL} alt={userData.displayName || "User"} className="w-full h-full object-cover" />
                     ) : (
                       <User className="w-5 h-5 text-blue-600" />
                     )}
                   </div>
-                  <span className="font-medium">{session.user?.name?.split(' ')[0] || "User"}</span>
+                  <span className="font-medium">{userData?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || "User"}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
 
@@ -102,8 +132,8 @@ const Navbar = () => {
                       className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200"
                     >
                       <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-900">{session.user?.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
+                        <p className="text-sm font-medium text-gray-900">{userData?.displayName || user?.email}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                       </div>
                       <Link
                         href="/dashboard"
@@ -166,8 +196,25 @@ const Navbar = () => {
             className="md:hidden bg-white border-t border-gray-100 shadow-sm"
           >
             <div className="px-4 py-2 space-y-1">
-              {navLinks.map((link) => (
-                !link.authRequired || session ? (
+              {navLinks.map((link) => {
+                // For auth-required routes when user is guest, show with special handling
+                if (link.authRequired && isGuest) {
+                  return (
+                    <Link
+                      key={link.path}
+                      href={link.guestRedirect || '/auth/login'}
+                      className="block py-2 px-3 rounded-md text-gray-700 hover:bg-gray-50 border-l-2 border-blue-200"
+                      onClick={closeMenus}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{link.name}</span>
+                        <span className="text-xs text-blue-600">Sign in required</span>
+                      </div>
+                    </Link>
+                  );
+                }
+                
+                return (
                   <Link
                     key={link.path}
                     href={link.path}
@@ -180,10 +227,10 @@ const Navbar = () => {
                   >
                     {link.name}
                   </Link>
-                ) : null
-              ))}
+                );
+              })}
               <div className="pt-4 pb-2 border-t border-gray-200">
-                {!session ? (
+                {isGuest ? (
                   <div className="flex flex-col space-y-2">
                     <Link
                       href="/auth/login"
@@ -204,15 +251,15 @@ const Navbar = () => {
                   <div className="space-y-2">
                     <div className="flex items-center px-3 py-2">
                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden mr-3">
-                        {session.user?.image ? (
-                          <img src={session.user.image} alt={session.user.name || "User"} className="w-full h-full object-cover" />
+                        {userData?.photoURL ? (
+                          <img src={userData.photoURL} alt={userData.displayName || "User"} className="w-full h-full object-cover" />
                         ) : (
                           <User className="w-5 h-5 text-blue-600" />
                         )}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{session.user?.name || "User"}</p>
-                        <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
+                        <p className="font-medium text-gray-900">{userData?.displayName || user?.email || "User"}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                       </div>
                     </div>
                     <Link

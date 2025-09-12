@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { Spinner } from '../ui/spinner';
+import { auth, onAuthStateChange } from '@/lib/auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,24 +14,41 @@ export const ProtectedRoute = ({
   adminOnly = false,
   redirectTo = '/auth/login',
 }: ProtectedRouteProps) => {
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const isLoading = status === 'loading';
 
   useEffect(() => {
-    if (!isLoading) {
-      // If not authenticated, redirect to login
-      if (!session) {
+    const unsubscribe = onAuthStateChange((currentUser) => {
+      setLoading(true);
+      
+      if (!currentUser) {
+        setUser(null);
+        setIsAdmin(false);
         router.push(`${redirectTo}?callbackUrl=${window.location.href}`);
+        setLoading(false);
+      } else {
+        setUser(currentUser);
+        
+        // Check if user is admin - you'll need to implement this based on your user data
+        // This is an example implementation - adjust based on your actual data structure
+        currentUser.getIdTokenResult().then((idTokenResult) => {
+          setIsAdmin(idTokenResult.claims.admin === true);
+          
+          if (adminOnly && !idTokenResult.claims.admin) {
+            router.push('/dashboard');
+          }
+          
+          setLoading(false);
+        });
       }
-      // If admin-only route and user is not an admin, redirect to dashboard
-      else if (adminOnly && !session.user.isAdmin) {
-        router.push('/dashboard');
-      }
-    }
-  }, [isLoading, session, adminOnly, redirectTo, router]);
+    });
+    
+    return () => unsubscribe();
+  }, [adminOnly, redirectTo, router]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center">
@@ -43,7 +60,7 @@ export const ProtectedRoute = ({
   }
 
   // If not authorized or admin check fails, don't render children
-  if (!session || (adminOnly && !session.user.isAdmin)) {
+  if (!user || (adminOnly && !isAdmin)) {
     return null;
   }
 

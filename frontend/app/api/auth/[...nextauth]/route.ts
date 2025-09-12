@@ -1,6 +1,17 @@
-import NextAuth from 'next-auth';
-import { authOptions } from '@/lib/auth';
+// This is a placeholder file to prevent 404 errors during transition
+// from NextAuth to Firebase Authentication
+// In the future, this can be removed completely
 
-const handler = NextAuth(authOptions);
+export async function GET(request) {
+  return new Response(JSON.stringify({ message: 'Using Firebase Authentication instead of NextAuth' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
-export { handler as GET, handler as POST };
+export async function POST(request) {
+  return new Response(JSON.stringify({ message: 'Using Firebase Authentication instead of NextAuth' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}

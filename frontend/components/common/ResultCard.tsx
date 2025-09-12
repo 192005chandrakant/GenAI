@@ -6,6 +6,7 @@ import { formatTimestamp } from '../../lib/utils';
 import CredibilityBadge from './CredibilityBadge';
 import CitationCard from './CitationCard';
 import LearnCardComponent from './LearnCardComponent';
+import EvidenceMap from '../ui/evidence-map';
 
 interface ResultCardProps {
   result: CheckResponse;
@@ -146,6 +147,19 @@ const ResultCard = ({ result, onShare, onDownload }: ResultCardProps) => {
           </div>
         </div>
       </div>
+
+      {/* Evidence Map Section */}
+      {(result.claims.length > 0 || result.citations.length > 0) && (
+        <div className="p-6 border-t border-gray-200">
+          <EvidenceMap
+            claims={result.claims}
+            citations={result.citations}
+            verdict={result.verdict}
+            score={result.score}
+            className="h-96"
+          />
+        </div>
+      )}
       
       {/* Footer */}
       <div className="p-4 border-t border-gray-200 bg-gray-50 text-center text-sm text-gray-500">

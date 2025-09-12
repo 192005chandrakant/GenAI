@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { X, Upload, FileText, Image, File, AlertCircle, Loader2, Link } from 'lucide-react';
+import { X, Upload, FileText, Image, File, AlertCircle, Link } from 'lucide-react';
 import { formatFileSize } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { Spinner } from '../ui/spinner';
+import { apiClient } from '../../lib/api';
+import { toast } from 'react-hot-toast';
 
 interface UploadZoneProps {
   onFileAccepted: (file: File) => void;
@@ -13,6 +15,7 @@ interface UploadZoneProps {
   maxSize?: number; // in bytes
   acceptedFileTypes?: string[];
   className?: string;
+  enableImageTextExtraction?: boolean; // OCR functionality
 }
 
 const UploadZone = ({
@@ -23,19 +26,63 @@ const UploadZone = ({
   maxSize = 10 * 1024 * 1024, // 10MB default
   acceptedFileTypes = ['image/*', 'application/pdf', 'text/*'],
   className = '',
+  enableImageTextExtraction = true,
 }: UploadZoneProps) => {
   const [activeTab, setActiveTab] = useState<'file' | 'text' | 'url'>('file');
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
-  const { getRootProps, getInputProps, isDragActive, acceptedFiles, fileRejections } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: acceptedFileTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
     maxSize,
     maxFiles: 1,
-    onDropAccepted: (files) => {
+    onDropAccepted: async (files) => {
       setError(null);
-      onFileAccepted(files[0]);
+      const file = files[0];
+      setUploadedFile(file);
+      
+      try {
+        // Upload file to Cloudinary
+        let uploadResult;
+        if (file.type.startsWith('image/')) {
+          uploadResult = await apiClient.uploadImage(file, { optimize: true });
+        } else {
+          uploadResult = await apiClient.uploadDocument(file);
+        }
+        
+        setUploadResult(uploadResult);
+        
+        // If it's an image and OCR is enabled, try to extract text
+        if (file.type.startsWith('image/') && enableImageTextExtraction) {
+          setIsExtracting(true);
+          try {
+            const ocrResult = await apiClient.extractTextFromImage(file);
+            if (ocrResult.success && ocrResult.extracted_text?.trim()) {
+              toast.success('Text extracted from image successfully!');
+              // Auto-fill the text tab with extracted text
+              setText(ocrResult.extracted_text);
+              setActiveTab('text');
+            }
+          } catch (ocrError) {
+            console.warn('OCR extraction failed:', ocrError);
+            // Don't show error for OCR failure, just continue with file upload
+          } finally {
+            setIsExtracting(false);
+          }
+        }
+        
+        // Call the original handler
+        onFileAccepted(file);
+        
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+        setError('Failed to upload file. Please try again.');
+        toast.error('Upload failed. Please try again.');
+      }
     },
     onDropRejected: (rejections) => {
       const rejection = rejections[0];
@@ -47,7 +94,7 @@ const UploadZone = ({
         setError('Error uploading file. Please try again.');
       }
     },
-    disabled: isLoading,
+    disabled: isLoading || isExtracting,
   });
 
   const handleTextSubmit = (e: React.FormEvent) => {
@@ -69,6 +116,22 @@ const UploadZone = ({
       onUrlInput(url);
     } else {
       setError('Please enter a valid URL.');
+    }
+  };
+
+  const clearUploadedFile = () => {
+    setUploadedFile(null);
+    setUploadResult(null);
+    setError(null);
+  };
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return <Image className="w-6 h-6 text-blue-600" />;
+    } else if (file.type.includes('pdf')) {
+      return <FileText className="w-6 h-6 text-red-600" />;
+    } else {
+      return <File className="w-6 h-6 text-gray-600" />;
     }
   };
 
@@ -138,11 +201,13 @@ const UploadZone = ({
       )}
 
       {/* Loading Indicator */}
-      {isLoading && (
+      {(isLoading || isExtracting) && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg animate-fade-in">
           <div className="flex flex-col items-center">
             <Spinner size="lg" className="mb-2" />
-            <p className="text-gray-700 font-medium">Analyzing content...</p>
+            <p className="text-gray-700 font-medium">
+              {isExtracting ? 'Extracting text from image...' : 'Analyzing content...'}
+            </p>
           </div>
         </div>
       )}
@@ -153,27 +218,58 @@ const UploadZone = ({
           {...getRootProps()} 
           className={`border-2 border-dashed rounded-lg p-8 cursor-pointer transition-colors text-center relative ${
             isDragActive ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-blue-400'
-          } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+          } ${isLoading || isExtracting ? 'pointer-events-none opacity-50' : ''}`}
         >
           <input {...getInputProps()} />
           
-          {acceptedFiles.length > 0 ? (
-            <div className="flex items-center justify-center space-x-2 py-2">
-              <File className="w-6 h-6 text-blue-600" />
-              <span className="font-medium text-gray-900">{acceptedFiles[0].name}</span>
-              <span className="text-gray-500 text-sm">({formatFileSize(acceptedFiles[0].size)})</span>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Clear accepted files by forcing a re-render
-                  setActiveTab('text');
-                  setActiveTab('file');
-                }}
-                className="p-1 hover:bg-gray-100 rounded-full"
-                disabled={isLoading}
-              >
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
+          {uploadedFile ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-center space-x-2 py-2">
+                {getFileIcon(uploadedFile)}
+                <span className="font-medium text-gray-900">{uploadedFile.name}</span>
+                <span className="text-gray-500 text-sm">({formatFileSize(uploadedFile.size)})</span>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearUploadedFile();
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded-full"
+                  disabled={isLoading || isExtracting}
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+              
+              {uploadResult && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-700 text-sm font-medium">File uploaded successfully</span>
+                  </div>
+                  {uploadResult.url && (
+                    <a 
+                      href={uploadResult.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-xs mt-1 block truncate"
+                    >
+                      View uploaded file
+                    </a>
+                  )}
+                </div>
+              )}
+              
+              {uploadedFile.type.startsWith('image/') && enableImageTextExtraction && (
+                <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Image className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-blue-900">Image Text Extraction</p>
+                      <p>We'll automatically extract any text from this image for analysis.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div>
@@ -182,6 +278,11 @@ const UploadZone = ({
               <p className="text-sm text-gray-600">
                 Support for images, PDFs, and text files (max {formatFileSize(maxSize)})
               </p>
+              {enableImageTextExtraction && (
+                <p className="text-xs text-blue-600 mt-2">
+                  ✨ Text will be automatically extracted from uploaded images
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -201,7 +302,7 @@ const UploadZone = ({
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || text.trim().length === 0}
+              disabled={isLoading || isExtracting || text.trim().length === 0}
               loading={isLoading}
             >
               {isLoading ? 'Analyzing...' : 'Analyze Text'}
@@ -230,7 +331,7 @@ const UploadZone = ({
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || url.trim().length === 0}
+              disabled={isLoading || isExtracting || url.trim().length === 0}
               loading={isLoading}
             >
               {isLoading ? 'Fetching and Analyzing...' : 'Analyze URL'}
@@ -243,8 +344,3 @@ const UploadZone = ({
 };
 
 export default UploadZone;
-
-
-
-
-

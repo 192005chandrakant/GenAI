@@ -55,6 +55,16 @@ class Settings(BaseSettings):
     FIREBASE_CLIENT_EMAIL: Optional[str] = Field(default="local-client-email", env="FIREBASE_CLIENT_EMAIL")
     FIREBASE_CLIENT_ID: Optional[str] = Field(default="local-client-id", env="FIREBASE_CLIENT_ID")
     FIREBASE_AUTH_DOMAIN: Optional[str] = Field(default="localhost", env="FIREBASE_AUTH_DOMAIN")
+    
+    # OAuth Configuration
+    GITHUB_CLIENT_ID: Optional[str] = Field(default="", env="GITHUB_CLIENT_ID")
+    GITHUB_CLIENT_SECRET: Optional[str] = Field(default="", env="GITHUB_CLIENT_SECRET")
+    GITHUB_CALLBACK_URL: Optional[str] = Field(default="http://localhost:3001/api/auth/callback/github", env="GITHUB_CALLBACK_URL")
+
+    # Cloudinary Configuration
+    CLOUDINARY_CLOUD_NAME: Optional[str] = Field(default="", env="CLOUDINARY_CLOUD_NAME")
+    CLOUDINARY_API_KEY: Optional[str] = Field(default="", env="CLOUDINARY_API_KEY")
+    CLOUDINARY_API_SECRET: Optional[str] = Field(default="", env="CLOUDINARY_API_SECRET")
 
     # Firestore Configuration
     FIRESTORE_COLLECTION_CHECKS: str = Field(default="checks", env="FIRESTORE_COLLECTION_CHECKS")
@@ -171,3 +181,13 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Compatibility helper used across the codebase.
+
+    Many modules import `get_settings()` (older pattern). Keep a simple
+    helper that returns the global `settings` instance to avoid
+    ImportError and maintain backward compatibility.
+    """
+    return settings

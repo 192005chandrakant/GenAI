@@ -3,17 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn, getProviders } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { LogIn, Shield, Mail, Lock, Chrome, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { LogIn, Shield, Mail, Lock, Chrome, Eye, EyeOff, ArrowLeft, Github } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { signInWithEmail, signInWithGoogle, signInWithGitHub } from '@/lib/firebase';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -26,6 +26,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -41,22 +42,27 @@ export default function LoginPage() {
     const toastId = toast.loading('Signing in...');
 
     try {
-      const result = await signIn('credentials', {
-        redirect: false,
-        email: data.email,
-        password: data.password,
-      });
+      const result = await signInWithEmail(data.email, data.password);
 
-      if (result?.error) {
-        toast.error(result.error, { id: toastId });
-        setIsLoading(false);
-      } else {
+      if (result.user) {
         toast.success('Signed in successfully!', { id: toastId });
         router.push('/dashboard');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('An unexpected error occurred. Please try again.', { id: toastId });
+      let errorMessage = 'Failed to sign in. Please check your credentials.';
+      
+      if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up first.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      }
+      
+      toast.error(errorMessage, { id: toastId });
       setIsLoading(false);
     }
   };
@@ -66,22 +72,50 @@ export default function LoginPage() {
     const toastId = toast.loading('Signing in with Google...');
 
     try {
-      const result = await signIn('google', {
-        redirect: false,
-        callbackUrl: '/dashboard',
-      });
+      const result = await signInWithGoogle();
 
-      if (result?.error) {
-        toast.error('Failed to sign in with Google', { id: toastId });
-      } else {
+      if (result.user) {
         toast.success('Signed in successfully!', { id: toastId });
         router.push('/dashboard');
       }
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-      toast.error('An unexpected error occurred. Please try again.', { id: toastId });
-    } finally {
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      let errorMessage = 'Failed to sign in with Google. Please try again.';
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign in was cancelled. Please try again.';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup was blocked. Please allow popups and try again.';
+      }
+      
+      toast.error(errorMessage, { id: toastId });
       setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    setIsGithubLoading(true);
+    const toastId = toast.loading('Signing in with GitHub...');
+
+    try {
+      const result = await signInWithGitHub();
+
+      if (result.user) {
+        toast.success('Signed in successfully!', { id: toastId });
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('GitHub sign in error:', error);
+      let errorMessage = 'Failed to sign in with GitHub. Please try again.';
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign in was cancelled. Please try again.';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup was blocked. Please allow popups and try again.';
+      }
+      
+      toast.error(errorMessage, { id: toastId });
+      setIsGithubLoading(false);
     }
   };
 
@@ -112,11 +146,12 @@ export default function LoginPage() {
             <p className="text-gray-600 dark:text-gray-300">Sign in to access your dashboard</p>
           </div>
 
-          {/* Google Sign In Button */}
-          <div className="mb-6">
+          {/* OAuth Sign In Buttons */}
+          <div className="space-y-3 mb-6">
+            {/* Google Sign In Button */}
             <Button
               onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading || isLoading}
+              disabled={isGoogleLoading || isLoading || isGithubLoading}
               className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white"
               variant="outline"
             >
@@ -131,6 +166,26 @@ export default function LoginPage() {
                 <Chrome className="mr-2 h-4 w-4" />
               )}
               Continue with Google
+            </Button>
+
+            {/* GitHub Sign In Button */}
+            <Button
+              onClick={handleGithubSignIn}
+              disabled={isGithubLoading || isLoading || isGoogleLoading}
+              className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white"
+              variant="outline"
+            >
+              {isGithubLoading ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                >
+                  <Github className="mr-2 h-4 w-4" />
+                </motion.div>
+              ) : (
+                <Github className="mr-2 h-4 w-4" />
+              )}
+              Continue with GitHub
             </Button>
           </div>
 
@@ -198,7 +253,7 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600" 
-                disabled={isLoading || isGoogleLoading}
+                disabled={isLoading || isGoogleLoading || isGithubLoading}
                 loading={isLoading}
               >
                 <LogIn className="mr-2 h-4 w-4" />

@@ -16,23 +16,146 @@ export default function HomePage() {
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
               Fight <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">Misinformation</span> with AI
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
               Advanced AI-powered platform to detect, analyze, and educate about misinformation across all media types.
+            </p>
+            <p className="text-lg text-blue-600 dark:text-blue-400 mb-8 font-medium">
+              🚀 Try it free - No signup required!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 href="/analyze"
-                className="btn btn-primary btn-lg animate-slide-up"
+                className="btn btn-primary btn-lg animate-slide-up relative group"
                 style={{ animationDelay: '100ms' }}
               >
-                Start Analyzing
+                <span>Try Now - No Signup</span>
+                <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                  Free
+                </span>
               </Link>
               <Link
-                href="/learn"
+                href="/auth/register"
                 className="btn btn-outline btn-lg animate-slide-up"
                 style={{ animationDelay: '200ms' }}
               >
-                Learn More
+                Sign Up for More Features
+              </Link>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+              Get 10 free fact checks daily without registration. Sign up for unlimited access.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Guest vs Premium Features */}
+      <section className="py-20 bg-white dark:bg-gray-800">
+        <div className="container">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Choose Your Experience
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              Start with our free tier or unlock unlimited features with a free account.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Guest Tier */}
+            <div className="card p-8 border-2 border-gray-200 dark:border-gray-600">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Try as Guest</h3>
+                <p className="text-gray-600 dark:text-gray-300">Perfect for trying out our platform</p>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-4">
+                  Free
+                </div>
+                <p className="text-sm text-gray-500">No signup required</p>
+              </div>
+              
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  10 fact checks per day
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Basic AI analysis
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Text, image & URL analysis
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Instant results
+                </li>
+                <li className="flex items-center text-gray-400 dark:text-gray-500">
+                  <span className="text-gray-400 mr-3">✗</span>
+                  Save & share results
+                </li>
+                <li className="flex items-center text-gray-400 dark:text-gray-500">
+                  <span className="text-gray-400 mr-3">✗</span>
+                  History tracking
+                </li>
+              </ul>
+              
+              <Link
+                href="/analyze"
+                className="w-full btn btn-outline text-center block"
+              >
+                Try Now
+              </Link>
+            </div>
+
+            {/* Premium Tier */}
+            <div className="card p-8 border-2 border-blue-500 dark:border-blue-400 relative">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium">
+                  Most Popular
+                </span>
+              </div>
+              
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Full Access</h3>
+                <p className="text-gray-600 dark:text-gray-300">Unlock all features and unlimited usage</p>
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-4">
+                  Free
+                </div>
+                <p className="text-sm text-gray-500">Forever with account</p>
+              </div>
+              
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Unlimited fact checks
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Advanced AI analysis
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Detailed source citations
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Save & share results
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Personal dashboard
+                </li>
+                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-green-500 mr-3">✓</span>
+                  Community features
+                </li>
+              </ul>
+              
+              <Link
+                href="/auth/register"
+                className="w-full btn btn-primary text-center block"
+              >
+                Sign Up Free
               </Link>
             </div>
           </div>

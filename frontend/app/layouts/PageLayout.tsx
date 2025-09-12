@@ -1,11 +1,11 @@
 'use client'
 
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import NavigationWrapper from '../../components/layout/NavigationWrapper'
 import ProtectedRoute from '../../components/auth/ProtectedRoute'
 import { motion } from 'framer-motion'
+import { onAuthStateChange } from '@/lib/auth';
 
 interface PageLayoutProps {
   children: ReactNode
@@ -23,8 +23,15 @@ const PageLayout = ({
   adminOnly = false,
 }: PageLayoutProps) => {
   const pathname = usePathname()
-  const { status } = useSession()
-  
+  const [status, setStatus] = useState('loading')
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setStatus(user ? 'authenticated' : 'unauthenticated')
+    })
+    return () => unsubscribe()
+  }, [])
+
   // Add page view analytics
   useEffect(() => {
     if (pathname) {
@@ -33,7 +40,7 @@ const PageLayout = ({
       // Here you could add analytics tracking code
     }
   }, [pathname])
-  
+
   // Render content
   const pageContent = (
     <motion.div

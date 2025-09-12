@@ -1,558 +1,399 @@
-# Misinformation Detection & Education Platform
+# AI-Powered Misinformation Defense Platform
 
-A comprehensive full-stack web application for detecting misinformation and educating users through AI-powered analysis, gamified learning, and community-driven fact-checking.
+> **Fast, multilingual, India-first AI companion that flags potentially misleading content, shows evidence with citations, and teaches users why it may mislead.**
 
-## 🚀 Features
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-org/misinformation-defense)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)](package.json)
+[![PWA Ready](https://img.shields.io/badge/PWA-ready-purple)](https://web.dev/progressive-web-apps/)
 
-### Core Functionality
-- **Multi-format Content Analysis**: Text, links, images, videos, and social media posts
-- **AI-Powered Detection**: Google Vertex AI (Gemini 1.5 Flash/Pro) with grounding and embeddings
-- **Multi-language Support**: Hindi, English, and 5+ Indian languages with cross-lingual retrieval
-- **Fact-Checking Integration**: Fact Check Tools API, curated RSS feeds, and real-time verification
-- **Media Analysis**: EXIF data extraction, image hashing, OCR, and video processing
-- **Gamified Learning**: Points system, achievements, leaderboards, and educational modules
-- **Community Features**: User reports, moderation tools, and collaborative fact-checking
-- **Admin Dashboard**: Analytics, content moderation, and system management
+## 🌟 Key Features
 
-### Advanced Features
-- **PWA Support**: Offline functionality, push notifications, and mobile app-like experience
-- **Real-time Processing**: Pub/Sub integration for scalable content analysis
-- **Caching Strategy**: Firestore cache with FAISS for similarity search
-- **Analytics**: Looker Studio integration for comprehensive insights
-- **Security**: Privacy-first design with opt-in telemetry and ethical AI practices
+### Core Detection Capabilities
+- **One-Tap Analysis**: Submit text, URLs, or images for credibility scoring in <7 seconds
+- **Evidence-Backed Results**: 3-5 citations with domain trust scores and timestamps
+- **Multilingual Support**: Hindi + English with auto-detection and cross-lingual retrieval
+- **Learn Cards**: Educational explanations of manipulation techniques detected
 
-## 🏗️ Architecture
+### Advanced Features  
+- **Propaganda Pattern Detection**: Identifies 20+ manipulation techniques
+- **Evidence Map**: Interactive visualization of claims ↔ sources relationships
+- **Admin Dashboard**: Content moderation and analytics for organizations
+- **PWA Support**: Offline functionality and mobile app-like experience
 
-### Frontend
-- **Framework**: Next.js 14 with App Router
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **PWA**: Service workers, offline support, push notifications
-- **State Management**: React Query + Zustand
-- **Authentication**: Firebase Auth with Google OAuth
-- **UI Components**: shadcn/ui, Framer Motion, Lucide React
-
-### Backend
-- **Framework**: FastAPI with LangChain orchestration
-- **Deployment**: Google Cloud Run with auto-scaling
-- **Authentication**: Firebase Auth integration
-- **API Documentation**: OpenAPI/Swagger with interactive docs
-
-### AI & ML
-- **Primary AI**: Google Vertex AI (Gemini 1.5 Flash/Pro)
-- **Embeddings**: Vertex AI Embeddings for similarity search
-- **Grounding**: Real-time fact verification with allowlist
-- **Language Processing**: Cross-lingual retrieval and translation
-- **Media Analysis**: OpenCV, imagehash, Tesseract OCR, FFmpeg
-
-### Data & Storage
-- **Primary Database**: Firestore (real-time, scalable)
-- **Analytics**: BigQuery for large-scale data analysis
-- **File Storage**: Google Cloud Storage with lifecycle policies
-- **Search**: FAISS for similarity search and caching
-- **Message Queue**: Pub/Sub for async processing
-- **Scheduling**: Cloud Scheduler for batch operations
-
-### Search & Fact-Checking
-- **Fact Check API**: Google Fact Check Tools API
-- **RSS Feeds**: Curated news sources and fact-checking sites
-- **Caching**: Firestore cache with TTL
-- **Similarity Search**: FAISS for finding similar claims
-
-### DevOps & Operations
-- **CI/CD**: Cloud Build with automated testing
-- **Secrets**: Secret Manager for secure configuration
-- **Logging**: Cloud Logging with structured logs
-- **Monitoring**: Cloud Monitoring and alerting
-- **Analytics**: Looker Studio dashboards
-
-## 📊 Data Schemas
-
-### Firestore Collections
-
-#### `checks` Collection
-```typescript
-{
-  id: string;
-  claim: string;
-  evidence: Evidence[];
-  score: number; // 0-100 reliability score
-  verdict: 'true' | 'false' | 'misleading' | 'unverified';
-  explanations: {
-    summary: string;
-    reasoning: string;
-    how_detected: string;
-  };
-  citations: Citation[];
-  metadata: {
-    language: string;
-    content_type: 'text' | 'image' | 'video' | 'link';
-    user_id: string;
-    created_at: Timestamp;
-    updated_at: Timestamp;
-  };
-  performance: {
-    latency_ms: number;
-    model_used: string;
-    confidence: number;
-  };
-}
-```
-
-#### `sources` Collection
-```typescript
-{
-  id: string;
-  domain: string;
-  credibility_score: number; // 0-100
-  category: 'news' | 'fact_check' | 'academic' | 'government';
-  notes: string;
-  last_verified: Timestamp;
-  allowlist_status: 'allowed' | 'blocked' | 'pending';
-}
-```
-
-#### `lessons` Collection
-```typescript
-{
-  id: string;
-  technique: string;
-  description: string;
-  examples: string[];
-  counter_habits: string[];
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  language: string;
-  created_at: Timestamp;
-}
-```
-
-#### `users` Collection
-```typescript
-{
-  id: string;
-  email: string;
-  display_name: string;
-  photo_url: string;
-  points: number;
-  level: number;
-  achievements: Achievement[];
-  preferences: {
-    language: string;
-    notifications: boolean;
-    privacy_level: 'public' | 'private';
-  };
-  created_at: Timestamp;
-  last_active: Timestamp;
-}
-```
-
-## 🧪 Evaluation Metrics
-
-### Accuracy
-- **Precision@k**: Top-k retrieval accuracy
-- **Stance Agreement**: Comparison with fact-check databases
-- **False Positive Rate**: Minimize incorrect flagging
-
-### Performance
-- **Latency**: P50 < 3s, P95 < 7s
-- **Throughput**: Handle concurrent requests efficiently
-- **Caching Hit Rate**: Optimize for repeated queries
-
-### User Experience
-- **Helpfulness**: User ratings and feedback
-- **Time-to-Citation**: Speed of source verification
-- **Engagement**: Learning completion rates
-
-### A/B Testing
-- **Learn Cards**: Impact on user education
-- **UI Variations**: Component performance testing
-- **Feature Rollouts**: Gradual deployment strategy
-
-## 💰 Cost Optimization Strategy
-
-### AI Model Selection
-- **Default**: Gemini 1.5 Flash (cost-effective)
-- **Escalation**: Gemini 1.5 Pro for complex cases
-- **Caching**: Hash-based result caching
-- **Batch Processing**: Nightly index refresh
-
-### Infrastructure
-- **Firebase**: Free tier utilization
-- **Cloud Run**: Min instances = 0 (scale to zero)
-- **BigQuery**: Free tier (1TB/month)
-- **Hackathon Credits**: Maximize usage
-
-### Caching Strategy
-- **Firestore**: TTL-based caching
-- **FAISS**: Similarity search caching
-- **CDN**: Static asset optimization
-
-## 🔐 Privacy & Ethics
-
-### Data Protection
-- **No Long-term Storage**: Raw media deleted unless consent
-- **Opt-in Telemetry**: User-controlled data collection
-- **Anonymization**: PII removal for analytics
-
-### AI Ethics
-- **Neutral Tone**: Avoid persuasion, show sources
-- **Guardrails**: Prevent hallucinations and jailbreak
-- **Transparency**: Explain AI decisions clearly
-- **Bias Mitigation**: Regular model evaluation
-
-### User Control
-- **Privacy Levels**: Public/private content sharing
-- **Data Export**: User data portability
-- **Account Deletion**: Complete data removal
-
-## 🌍 Multilingual Support
-
-### Language Coverage
-- **MVP**: Hindi + English
-- **Beta**: Bengali, Telugu, Tamil, Marathi, Kannada
-- **Future**: 20+ Indian languages
-
-### Cross-lingual Features
-- **Retrieval**: Find evidence across languages
-- **Answers**: Respond in input language
-- **Translation**: Seamless language switching
-
-## 🧵 LLM Processing Flow
-
-### 1. Content Ingestion
-```
-Input → Language Detection → Tokenization → Content Type Classification
-```
-
-### 2. Claim Extraction
-```
-Gemini 1.5 Flash → Extract Claims → Identify Key Entities → Determine Stance
-```
-
-### 3. Evidence Retrieval
-```
-Grounding + Allowlist → Fact Check API → RSS Feeds → Similarity Search (FAISS)
-```
-
-### 4. Analysis & Scoring
-```
-ONNX Model → Stance Classification → Confidence Scoring → Evidence Weighting
-```
-
-### 5. Response Generation
-```
-Gemini Pro (if needed) → Sourced Summary → Explanations → Citations
-```
-
-### 6. Result Delivery
-```
-Score + Verdict + Citations + Explanations + Learning Content
-```
+### AI-Powered Analysis
+- **Google Vertex AI**: Gemini 1.5 Flash/Pro for claim extraction and reasoning
+- **Multi-Source Verification**: Fact Check Tools API + Indian fact-checkers + FAISS cache
+- **Stance Classification**: ONNX model for support/refute/neutral analysis
+- **Risk Scoring**: Weighted blend of source reputation and evidence distribution
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - **Node.js 18+** and **Python 3.11+**
-- **Google Cloud Platform** account with billing enabled
-- **Firebase** project
-- **API keys** for Vertex AI, Fact Check Tools
+- **Google Cloud Platform** account (or use local mocks)
 - **Git** for version control
 
-### Local Development Setup
+### 1. Clone and Setup
 
-#### 1. Clone and Navigate
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd "GenAI Hackathon"
+git clone https://github.com/your-org/misinformation-defense.git
+cd misinformation-defense
 
-# Verify the project structure
-ls -la
-# Should show: backend/, frontend/, deployment/, docs/, etc.
+# Quick setup for new developers
+make setup-new-dev
 ```
 
-#### 2. Backend Setup
+### 2. Environment Configuration
+
 ```bash
-# Navigate to backend directory
+# Backend configuration
+cp backend/env.example backend/.env
+# Edit backend/.env with your API keys and settings
+
+# Frontend configuration  
+cp frontend/.env.example frontend/.env.local
+# Edit frontend/.env.local with your configuration
+```
+
+### 3. Start Development
+
+```bash
+# Start both backend and frontend
+make dev
+
+# Or start individually
+make dev-backend    # Backend at http://localhost:8000
+make dev-frontend   # Frontend at http://localhost:3000
+```
+
+### 4. Access the Application
+
+- **Frontend**: http://localhost:3000
+- **API Documentation**: http://localhost:8000/api/docs
+- **Health Check**: http://localhost:8000/health
+
+## 🏗️ Architecture Overview
+
+```mermaid
+flowchart TB
+    subgraph "Client Layer"
+        PWA[Next.js PWA<br/>Tailwind + shadcn/ui]
+        Mobile[Mobile Browser]
+        Desktop[Desktop Browser]
+    end
+    
+    subgraph "API Layer"
+        CR[Cloud Run<br/>FastAPI]
+        PS[Pub/Sub<br/>Background Jobs]
+    end
+    
+    subgraph "Data Layer"
+        FS[(Firestore<br/>Real-time DB)]
+        BQ[(BigQuery<br/>Analytics)]
+        GCS[(Cloud Storage<br/>Media)]
+    end
+    
+    subgraph "AI/ML Layer"
+        VA[Vertex AI<br/>Gemini Flash/Pro]
+        VG[Vertex Grounding]
+        FC[Fact Check Tools API]
+    end
+    
+    PWA --> CR
+    Mobile --> CR
+    Desktop --> CR
+    CR --> FS
+    CR --> BQ
+    CR --> GCS
+    CR --> VA
+    CR --> VG
+    CR --> FC
+```
+
+### Tech Stack
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, shadcn/ui, PWA
+- **Backend**: FastAPI, Python 3.11, Pydantic v2, Firebase Auth
+- **AI/ML**: Google Vertex AI (Gemini 1.5), ONNX, FAISS
+- **Data**: Firestore, BigQuery, Cloud Storage
+- **Infrastructure**: Cloud Run, Firebase Hosting, Pub/Sub
+
+## 📖 API Reference
+
+### Core Endpoints
+
+#### POST /v1/checks
+Submit content for credibility analysis.
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/checks" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inputType": "text",
+    "payload": "Breaking: Scientists discover cure for all diseases",
+    "language": "auto"
+  }'
+```
+
+**Response:**
+```json
+{
+  "id": "chk_abc123",
+  "score": 45,
+  "badge": "yellow", 
+  "verdict": "Needs context - claim requires verification",
+  "confidenceBands": {"low": 0.35, "mid": 0.45, "high": 0.55},
+  "claims": [{"who": null, "what": "Scientists discover cure", "confidence": 0.8}],
+  "citations": [
+    {
+      "title": "No Universal Cure Discovered - Fact Check",
+      "url": "https://factcheck.org/...",
+      "stance": "refute",
+      "trustScore": 90
+    }
+  ],
+  "learnCards": [
+    {
+      "technique": "Sensationalism",
+      "explanation": "Exaggerated claims to grab attention",
+      "example": "Using 'Breaking' for unverified claims"
+    }
+  ]
+}
+```
+
+#### GET /v1/checks/{id}
+Retrieve previous analysis result.
+
+#### GET /v1/admin/queue
+Get content requiring moderation (admin only).
+
+[**Full API Documentation →**](http://localhost:8000/api/docs)
+
+## 🧪 Development
+
+### Available Commands
+
+```bash
+# Development
+make dev              # Start frontend + backend
+make dev-with-mocks   # Start with local mocks (no GCP needed)
+
+# Testing
+make test             # Run all tests
+make test-backend     # Backend tests only
+make test-frontend    # Frontend tests only
+
+# Code Quality
+make lint             # Lint all code
+make format           # Format all code
+
+# Database
+make seed             # Seed with sample data
+
+# Deployment
+make deploy-dev       # Deploy to development
+make deploy-prod      # Deploy to production
+```
+
+### Testing Strategy
+
+```bash
+# Backend testing
 cd backend
+pytest tests/ -v --cov=app --cov-report=html
 
-# Create and activate virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Set up environment variables
-cp env.example .env
-# Edit .env with your actual API keys and configuration
-```
-
-#### 3. Frontend Setup
-```bash
-# Navigate to frontend directory (from project root)
-cd ../frontend
-
-# Install Node.js dependencies
-npm install
-
-# Set up environment variables
-cp env.example .env.local
-# Edit .env.local with your actual configuration
-```
-
-#### 4. Environment Configuration
-
-**Backend (.env file):**
-```bash
-# Required: Google Cloud Configuration
-GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
-
-# Required: API Keys
-GEMINI_API_KEY=your-gemini-api-key
-TRANSLATE_API_KEY=your-translate-api-key
-
-# Required: Authentication
-SECRET_KEY=your-secret-key-here-make-it-long-and-random
-
-# Optional: Customize as needed
-DEBUG=true
-HOST=0.0.0.0
-PORT=8000
-```
-
-**Frontend (.env.local file):**
-```bash
-# Required: API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:8000
-
-# Required: Google OAuth (if using authentication)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# Optional: Analytics
-NEXT_PUBLIC_GA_ID=your-google-analytics-id
-```
-
-#### 5. Running the Application
-
-**Option A: Separate Terminals (Recommended for Development)**
-
-```bash
-# Terminal 1: Start Backend Server
-cd backend
-venv\Scripts\activate  # Windows
-# OR source venv/bin/activate  # macOS/Linux
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Terminal 2: Start Frontend Server
+# Frontend testing
 cd frontend
-npm run dev
+npm run test          # Unit tests
+npm run test:e2e      # End-to-end tests
 ```
 
-**Option B: Docker Compose (Production-like Environment)**
+### Code Quality
+
+The project uses automated code quality tools:
+- **Backend**: Black, isort, flake8, mypy
+- **Frontend**: ESLint, Prettier, TypeScript
+- **Pre-commit hooks**: Automatic linting before commits
+
+## 🌍 Multilingual Support
+
+### Current Languages
+- **English** (en) - Primary language
+- **Hindi** (hi) - Full support with cross-lingual retrieval
+
+### Planned Languages
+- Bengali (bn), Telugu (te), Tamil (ta), Marathi (mr), Kannada (kn)
+
+### Features
+- **Auto-detection**: Automatically detects input language
+- **Cross-lingual retrieval**: Find evidence in one language for claims in another
+- **Localized responses**: Answers provided in the input language
+- **Cultural context**: Adapted explanations for regional understanding
+
+## 🔒 Privacy & Security
+
+### Data Protection
+- **Minimal PII**: Only stores content hashes, not original content
+- **Opt-in telemetry**: Users control what data is collected
+- **Data retention**: 90-day automatic cleanup
+- **Anonymized analytics**: No personal identifiers in reports
+
+### AI Safety
+- **Source attribution**: Every claim backed by citations
+- **Confidence indicators**: Clear uncertainty communication
+- **Bias mitigation**: Regular model evaluation and adjustment
+- **Guardrails**: Prevents hallucinations and jailbreak attempts
+
+## 📊 Performance Metrics
+
+### Response Times (P95)
+- **Text analysis**: <3 seconds
+- **Image analysis**: <7 seconds  
+- **URL processing**: <5 seconds
+
+### Accuracy Goals
+- **Precision@5**: >85% for fact-check matches
+- **Stance agreement**: >80% with expert fact-checkers
+- **False positive rate**: <5% for legitimate content
+
+## 🚀 Deployment
+
+### Development Environment
 
 ```bash
-# From project root directory
-docker-compose up --build
-
-# This will start:
-# - Backend on http://localhost:8000
-# - Frontend on http://localhost:3000
-# - Redis on localhost:6379
-# - Nginx proxy on localhost:80
+# Using Cloud Run and Firebase
+make deploy-dev
 ```
 
-**Option C: Individual Docker Containers**
+### Production Environment
 
 ```bash
-# Backend only
-cd backend
-docker build -t misinformation-backend .
-docker run -p 8000:8000 --env-file .env misinformation-backend
-
-# Frontend only
-cd frontend
-docker build -t misinformation-frontend .
-docker run -p 3000:3000 --env-file .env.local misinformation-frontend
+# Interactive confirmation required
+make deploy-prod
 ```
 
-#### 6. Verify Installation
+### Infrastructure Requirements
 
-1. **Backend API**: Visit http://localhost:8000/docs for Swagger documentation
-2. **Frontend App**: Visit http://localhost:3000 for the main application
-3. **Health Check**: Backend should respond at http://localhost:8000/health
+#### GCP Services
+- **Cloud Run**: Serverless API hosting
+- **Firebase Hosting**: Frontend deployment
+- **Firestore**: Real-time database
+- **BigQuery**: Analytics and reporting
+- **Cloud Storage**: Media file storage
+- **Vertex AI**: AI/ML model serving
 
-### Production Deployment
+#### External APIs
+- **Google Fact Check Tools API**: Verified fact-check database
+- **Firebase Auth**: User authentication
+- **Various RSS feeds**: Real-time news verification
 
-#### Google Cloud Platform Setup
-```bash
-# Run the automated setup script
-chmod +x deployment/setup.sh
-./deployment/setup.sh
+## 📈 Monitoring & Analytics
 
-# Follow the prompts to configure your GCP project
-```
+### Health Monitoring
+- **Uptime**: 99.9% target availability
+- **Error tracking**: Automatic error reporting and alerting
+- **Performance**: Real-time latency and throughput monitoring
 
-#### Manual Deployment
-```bash
-# Deploy backend to Cloud Run
-cd backend
-gcloud run deploy misinformation-backend \
-  --source . \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated
+### Analytics Dashboard
+- **Usage metrics**: Checks per day, user engagement
+- **Accuracy tracking**: Precision, recall, false positive rates
+- **Geographic insights**: Regional misinformation trends
+- **Language distribution**: Multi-language usage patterns
 
-# Deploy frontend to Cloud Run
-cd ../frontend
-gcloud run deploy misinformation-frontend \
-  --source . \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated
-```
-
-### Development Commands
-
-#### Backend Commands
-```bash
-cd backend
-
-# Run with auto-reload (development)
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Run with production settings
-uvicorn main:app --host 0.0.0.0 --port 8000
-
-# Run tests
-pytest
-
-# Format code
-black .
-isort .
-
-# Lint code
-flake8 .
-mypy .
-```
-
-#### Frontend Commands
-```bash
-cd frontend
-
-# Development server
-npm run dev
-
-# Production build
-npm run build
-
-# Start production server
-npm start
-
-# Lint code
-npm run lint
-
-# Type checking
-npm run type-check
-```
-
-### Troubleshooting
-
-#### Common Issues
-
-1. **Port Already in Use**
-   ```bash
-   # Check what's using the port
-   netstat -ano | findstr :8000  # Windows
-   lsof -i :8000                 # macOS/Linux
-   
-   # Kill the process or use different ports
-   uvicorn main:app --reload --port 8001
-   npm run dev -- -p 3001
-   ```
-
-2. **Python Virtual Environment Issues**
-   ```bash
-   # Recreate virtual environment
-   deactivate
-   rm -rf venv
-   python -m venv venv
-   source venv/bin/activate  # or venv\Scripts\activate on Windows
-   pip install -r requirements.txt
-   ```
-
-3. **Node.js Dependencies Issues**
-   ```bash
-   # Clear npm cache and reinstall
-   npm cache clean --force
-   rm -rf node_modules package-lock.json
-   npm install
-   ```
-
-4. **Environment Variables Not Loading**
-   ```bash
-   # Verify .env files exist and are in correct locations
-   ls -la backend/.env
-   ls -la frontend/.env.local
-   
-   # Check if variables are being read
-   echo $GOOGLE_CLOUD_PROJECT
-   ```
-
-#### Getting Help
-
-- **Backend Issues**: Check logs at http://localhost:8000/docs
-- **Frontend Issues**: Check browser console and terminal output
-- **Docker Issues**: Check container logs with `docker-compose logs`
-- **GCP Issues**: Check Cloud Console logs and IAM permissions
-
-## 📁 Project Structure
-
-```
-misinformation-detection-platform/
-├── frontend/                 # Next.js PWA application
-│   ├── app/                 # App Router pages
-│   ├── components/          # shadcn/ui components
-│   ├── lib/                 # Utilities and configurations
-│   ├── hooks/               # Custom React hooks
-│   └── public/              # Static assets and PWA files
-├── backend/                 # FastAPI application
-│   ├── app/
-│   │   ├── api/            # API endpoints
-│   │   ├── core/           # Configuration and middleware
-│   │   ├── models/         # Data models and schemas
-│   │   ├── services/       # Business logic and external APIs
-│   │   └── utils/          # Utilities and helpers
-│   └── tests/              # Test suite
-├── deployment/             # Infrastructure and deployment
-├── docs/                   # Documentation
-└── shared/                 # Shared types and utilities
-```
+Access admin dashboard at `/dashboard/admin` (requires admin privileges).
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-## 📄 License
+### Development Setup
 
-MIT License - see LICENSE file for details
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** and add tests
+4. **Run tests**: `make test`
+5. **Commit your changes**: `git commit -m 'Add amazing feature'`
+6. **Push to the branch**: `git push origin feature/amazing-feature`
+7. **Open a Pull Request**
+
+### Code Standards
+- Follow existing code style (enforced by linters)
+- Add tests for new functionality
+- Update documentation as needed
+- Ensure all CI checks pass
+
+## 📄 Documentation
+
+- **[Roadmap](roadmap.md)**: Detailed feature roadmap and implementation plan
+- **[API Docs](http://localhost:8000/api/docs)**: Interactive API documentation
+- **[Architecture](docs/architecture.md)**: System design and component overview
+- **[Deployment Guide](docs/deployment.md)**: Production deployment instructions
 
 ## 🆘 Support
 
-- Documentation: `/docs`
-- Issues: GitHub Issues
-- Discussions: GitHub Discussions
+### Getting Help
+- **Documentation**: Check docs/ folder for detailed guides
+- **Issues**: [GitHub Issues](https://github.com/your-org/misinformation-defense/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-org/misinformation-defense/discussions)
+
+### Common Issues
+
+**Port already in use:**
+```bash
+# Check what's using the port
+netstat -ano | findstr :8000  # Windows
+lsof -i :8000                 # macOS/Linux
+
+# Use different ports
+make dev-backend PORT=8001
+```
+
+**Environment variables not loading:**
+```bash
+# Verify .env files exist
+ls -la backend/.env frontend/.env.local
+
+# Check file permissions and syntax
+```
+
+## 📋 Project Status
+
+### Current Version: 1.0.0
+
+✅ **Completed Features**
+- Core API endpoints (`/v1/checks`)
+- Firebase authentication integration
+- Multi-language support (Hindi + English)
+- Admin dashboard foundations
+- PWA-ready frontend structure
+
+🚧 **In Development**
+- FAISS similarity search integration
+- Advanced forensics for images/video
+- Community trust graph
+- Crisis mode verification
+
+📅 **Planned Features**
+- Mobile app (React Native)
+- Browser extension
+- WhatsApp bot integration
+- Classroom mode for educators
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Google Cloud Platform**: Infrastructure and AI services
+- **Firebase**: Authentication and hosting
+- **OpenAI**: Initial research and development inspiration
+- **Fact-checking organizations**: AltNews, Boom, WebQoof, Snopes, PolitiFact
+- **Open source community**: Various libraries and tools
 
 ---
 
-Built with ❤️ for combating misinformation and promoting digital literacy.
+**Built with ❤️ for combating misinformation and promoting digital literacy.**
+
+For more information, visit our [documentation](docs/) or check out the [roadmap](roadmap.md) for detailed implementation plans.

@@ -1,9 +1,9 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { cn } from '../../lib/utils';
-import { useSession } from 'next-auth/react';
 import { Spinner } from '../ui/spinner';
+import { onAuthStateChange } from '@/lib/auth';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -18,7 +18,14 @@ const MainLayout = ({
   hideFooter = false,
   fullWidth = false,
 }: MainLayoutProps) => {
-  const { status } = useSession();
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setStatus(user ? 'authenticated' : 'unauthenticated');
+    });
+    return () => unsubscribe();
+  }, []);
   
   return (
     <div className="flex flex-col min-h-screen">

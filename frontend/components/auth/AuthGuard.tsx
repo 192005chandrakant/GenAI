@@ -1,7 +1,7 @@
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Spinner } from '../ui/spinner';
+import { onAuthStateChange } from '@/lib/auth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -14,23 +14,29 @@ export function AuthGuard({
   fallback,
   requireAuth = true,
 }: AuthGuardProps) {
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (status === 'loading') return;
+    const unsubscribe = onAuthStateChange((currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
-    if (requireAuth && !session) {
+  useEffect(() => {
+    if (loading) return;
+
+    if (requireAuth && !user) {
       router.push('/auth/login');
-    } else if (!requireAuth && session) {
+    } else if (!requireAuth && user) {
       router.push('/dashboard');
-    } else {
-      setIsChecking(false);
     }
-  }, [session, status, router, requireAuth]);
+  }, [user, loading, router, requireAuth]);
 
-  if (status === 'loading' || isChecking) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Spinner size="lg" />
@@ -38,11 +44,11 @@ export function AuthGuard({
     );
   }
 
-  if (requireAuth && !session) {
+  if (requireAuth && !user) {
     return fallback || null;
   }
 
-  if (!requireAuth && session) {
+  if (!requireAuth && user) {
     return fallback || null;
   }
 
