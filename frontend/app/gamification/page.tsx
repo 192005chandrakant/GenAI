@@ -5,9 +5,9 @@ import { useRequireAuth } from '@/hooks';
 import PageLayout from '../layouts/PageLayout';
 
 export default function GamificationPage() {
-  const { session, status } = useRequireAuth();
+  const { user, loading, isAuthenticated } = useRequireAuth();
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <PageLayout>
         <div className="flex items-center justify-center h-64">

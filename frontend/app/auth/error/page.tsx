@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -23,7 +23,7 @@ const errorMessages: Record<string, string> = {
   SessionRequired: 'Please sign in to access this page.',
 };
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string>('');
   const [mounted, setMounted] = useState(false);
@@ -50,44 +50,34 @@ export default function AuthErrorPage() {
       >
         <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="text-center">
-            {/* Logo */}
-            <Link href="/" className="inline-flex items-center space-x-2 mb-6">
-              <Shield className="w-10 h-10 text-blue-600 dark:text-blue-400" />
-              <span className="text-2xl font-bold text-gray-800 dark:text-white">MisinfoGuard</span>
-            </Link>
-
-            {/* Error Icon */}
-            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-6">
+            <div className="w-16 h-16 mx-auto mb-6 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
               <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
             </div>
-
-            {/* Error Title */}
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Authentication Error
             </h1>
-
-            {/* Error Message */}
-            <p className="text-gray-600 dark:text-gray-300 mb-2">
+            
+            <p className="text-gray-600 dark:text-gray-300 mb-8">
               {errorMessage}
             </p>
 
-            {/* Error Code */}
-            {error && error !== 'Default' && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                Error code: {error}
-              </p>
-            )}
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Button asChild className="w-full">
+            <div className="space-y-4">
+              <Button
+                asChild
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+              >
                 <Link href="/auth/login">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Try Again
                 </Link>
               </Button>
-              
-              <Button variant="outline" asChild className="w-full">
+
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+              >
                 <Link href="/">
                   <Home className="w-4 h-4 mr-2" />
                   Back to Home
@@ -95,12 +85,19 @@ export default function AuthErrorPage() {
               </Button>
             </div>
 
-            {/* Help Text */}
-            <div className="mt-6 text-center">
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-center text-gray-500 dark:text-gray-400 mb-4">
+                <Shield className="w-5 h-5 mr-2" />
+                <span className="text-sm">Need help?</span>
+              </div>
+              
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                If this problem persists, please{' '}
-                <Link href="/contact" className="underline hover:text-gray-700 dark:hover:text-gray-300">
-                  contact support
+                If this error persists, please{' '}
+                <Link 
+                  href="/contact" 
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  contact our support team
                 </Link>
               </p>
             </div>
@@ -108,5 +105,17 @@ export default function AuthErrorPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+      </div>
+    }>
+      <AuthErrorContent />
+    </Suspense>
   );
 }

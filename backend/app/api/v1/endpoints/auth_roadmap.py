@@ -57,7 +57,7 @@ def create_access_token(user_data: Dict[str, Any], expires_delta: Optional[timed
         "exp": expire
     }
     
-    return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
+    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
 
 def create_refresh_token(user_id: str) -> str:
     """Create refresh token."""

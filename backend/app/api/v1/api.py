@@ -19,7 +19,10 @@ from app.api.v1.endpoints import (
     community,
     media,
     firebase_auth,
-    guest
+    guest,
+    misinformation,
+    enhanced_learning,
+    enhanced_community
 )
 
 api_router = APIRouter()
@@ -36,8 +39,11 @@ api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(gamification.router, prefix="/gamification", tags=["gamification"])
 api_router.include_router(learning.router, prefix="/learning", tags=["learning"])
+api_router.include_router(enhanced_learning.router, prefix="/enhanced-learning", tags=["enhanced-learning-modules"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(upload.router, prefix="/upload", tags=["file-upload"])
 api_router.include_router(media.router, prefix="/media", tags=["media-storage"])
 api_router.include_router(checks.router, prefix="/checks", tags=["checks"])
 api_router.include_router(community.router, prefix="/community", tags=["community"])
+api_router.include_router(enhanced_community.router, prefix="/enhanced-community", tags=["enhanced-community-features"])
+api_router.include_router(misinformation.router, prefix="/misinformation", tags=["enhanced-misinformation-detection"])

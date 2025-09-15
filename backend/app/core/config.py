@@ -107,8 +107,8 @@ class Settings(BaseSettings):
     CORS_ALLOW_HEADERS: List[str] = Field(default=["*"], env="CORS_ALLOW_HEADERS")
 
     # Gemini Models
-    GEMINI_MODEL: str = Field(default="gemini-pro", env="GEMINI_MODEL")
-    GEMINI_VISION_MODEL: str = Field(default="gemini-pro-vision", env="GEMINI_VISION_MODEL")
+    GEMINI_MODEL: str = Field(default="gemini-1.5-flash", env="GEMINI_MODEL")
+    GEMINI_VISION_MODEL: str = Field(default="gemini-1.5-flash", env="GEMINI_VISION_MODEL")
 
     # Secret Manager Configuration
     SECRET_MANAGER_PROJECT_ID: Optional[str] = Field(default="local-secret-project", env="SECRET_MANAGER_PROJECT_ID")

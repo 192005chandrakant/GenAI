@@ -104,6 +104,7 @@ const ImprovedNavbar = () => {
     { name: 'Analyze', path: '/analyze', icon: <Search className="w-5 h-5" /> },
     { name: 'Learn', path: '/learn', icon: <BookOpen className="w-5 h-5" /> },
     { name: 'Community', path: '/community', icon: <Users className="w-5 h-5" /> },
+    { name: 'About', path: '/about', icon: <Info className="w-5 h-5" /> },
     { 
       name: 'Dashboard', 
       path: '/dashboard', 
@@ -208,7 +209,7 @@ const ImprovedNavbar = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700"
+                    className="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-700"
                   >
                     <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                       <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
@@ -440,16 +441,7 @@ const ImprovedNavbar = () => {
                   ) : null
                 ))}
                 
-                {/* About/Help Link */}
-                <Link
-                  href="/about"
-                  className="flex items-center px-4 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  onClick={closeAllMenus}
-                >
-                  <Info className="w-5 h-5 mr-3" />
-                  About
-                  <ChevronRight className="w-4 h-4 ml-auto opacity-70" />
-                </Link>
+                {/* About is included in navLinks */}
                 
                 {/* Theme Toggle */}
                 <div className="px-4 py-2 flex justify-between items-center">
@@ -523,7 +515,7 @@ const ImprovedNavbar = () => {
         )}
       </AnimatePresence>
       
-      {/* Notifications Panel (Mobile) */}
+      {/* Notifications Panel (All screen sizes) */}
       <AnimatePresence>
         {isNotificationsOpen && (
           <motion.div
@@ -531,7 +523,7 @@ const ImprovedNavbar = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-lg"
+            className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shadow-lg"
           >
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
               <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>

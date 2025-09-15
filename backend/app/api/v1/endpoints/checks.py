@@ -11,13 +11,13 @@ from fastapi.responses import JSONResponse
 
 from app.models.dto import (
     ConfidenceBands, StanceStats, CheckMetadata, BadgeColor,
-    StanceType, HealthResponse
+    StanceType, HealthResponse, Citation, SourceCategory, CheckRequest, CheckResponse
 )
 from app.models.check_result_schemas import (
-    CheckResponse, Citation, VerdictType
+    VerdictType
 )
 from app.models.learning_schemas import LearnCard
-from app.models.content_schemas import Claim, CheckRequest
+from app.models.content_schemas import Claim
 from app.core.config import settings
 from app.services.firestore_service import firestore_service
 from app.services.gemini_service import gemini_service
@@ -42,6 +42,22 @@ def get_current_user(token: Optional[str] = None):
     except Exception as e:
         logger.warning(f"Invalid token: {e}")
         return None
+
+
+from app.services.gemini_service import gemini_service
+
+
+def _convert_verdict_to_stance(verdict: str) -> StanceType:
+    """Convert Gemini verdict to StanceType."""
+    verdict_upper = verdict.upper()
+    if verdict_upper in ["ACCURATE", "MOSTLY_ACCURATE"]:
+        return StanceType.SUPPORT
+    elif verdict_upper in ["INACCURATE", "MOSTLY_INACCURATE"]:
+        return StanceType.REFUTE
+    elif verdict_upper == "MIXED":
+        return StanceType.COMMENT
+    else:  # UNVERIFIABLE or unknown
+        return StanceType.UNRELATED
 
 
 async def extract_claims_service(content: str, language: str) -> list[Claim]:
@@ -99,33 +115,121 @@ async def retrieve_evidence_service(claims: list[Claim], language: str) -> list[
                 )
             ]
         
-        # 1. Vertex AI Grounding
+        # 1. Vertex AI Grounding (using analyze_text_content as fallback)
+        grounding_results = []
         try:
-            grounding_results = await vertex_ai_service.grounding_search(
-                [claim.what for claim in claims], language
-            )
+            # Use existing text analysis method as grounding substitute
+            for claim in claims:
+                result = await vertex_ai_service.analyze_text_content(
+                    claim.what, language
+                )
+                # Extract citations if any are returned
+                if hasattr(result, 'citations') and result.citations:
+                    grounding_results.extend(result.citations)
             citations.extend(grounding_results)
         except Exception as e:
             logger.warning(f"Grounding search failed: {e}")
-        
+
         # 2. Fact Check Tools API
+        fact_check_results = []
         try:
-            fact_check_results = await fact_check_service.search_claims(
-                [claim.what for claim in claims]
+            fact_check_results = await fact_check_service.search_fact_checks(
+                " ".join([claim.what for claim in claims])  # Combine claims into single query
             )
             citations.extend(fact_check_results)
         except Exception as e:
             logger.warning(f"Fact check search failed: {e}")
-        
+
         # 3. FAISS similarity search
+        faiss_results = []
         try:
             faiss_results = await faiss_service.search_similar_claims(
                 [claim.what for claim in claims]
             )
             citations.extend(faiss_results)
         except Exception as e:
-            logger.warning(f"FAISS search failed: {e}")
+            logger.warning(f"FAISS search failed: {e}")        # 4. Gemini Fallback - Primary fallback when other APIs fail
+        # Track which services failed or returned insufficient data
+        service_failures = []
+        if not grounding_results:
+            service_failures.append("Vertex AI Grounding")
+        if not fact_check_results:
+            service_failures.append("Fact Check API")
+        if not faiss_results:
+            service_failures.append("FAISS Search")
         
+        # In mock mode, also trigger fallback to demonstrate functionality  
+        # or when we have very limited results (< 2 citations total)
+        total_citations_so_far = len(citations)
+        should_use_fallback = (
+            len(service_failures) > 0 or  # Any service failed
+            (settings.use_mocks and total_citations_so_far < 2) or  # Mock mode with very limited results
+            total_citations_so_far == 0  # No results at all
+        )
+        
+        if should_use_fallback:
+            try:
+                if service_failures:
+                    logger.info(f"🔄 Triggering Gemini fallback due to failed services: {', '.join(service_failures)}")
+                else:
+                    logger.info(f"🔄 Triggering Gemini fallback due to insufficient evidence (mock mode or limited results: {total_citations_so_far})")
+                
+                # Use the first claim or combine all claims for analysis
+                main_content = claims[0].what if claims else ""
+                if len(claims) > 1:
+                    main_content = " ".join([claim.what for claim in claims])
+                
+                # Get fallback analysis from Gemini
+                gemini_analysis = await gemini_service.fact_check_fallback(
+                    content=main_content,
+                    content_type="text",
+                    context={
+                        "language": language,
+                        "source": "user_input",
+                        "claims_count": len(claims),
+                        "failed_services": service_failures,
+                        "mock_mode": settings.use_mocks,
+                        "existing_citations": total_citations_so_far
+                    }
+                )
+                
+                if gemini_analysis.get("success"):
+                    # Convert Gemini analysis to Citation format
+                    gemini_citation = Citation(
+                        title=f"AI Analysis: {gemini_analysis.get('verdict', 'Analysis')}",
+                        url="https://ai.google.dev/gemini-api",
+                        domain="ai.google.dev",
+                        timestamp=datetime.utcnow(),
+                        stance=_convert_verdict_to_stance(gemini_analysis.get('verdict', 'UNVERIFIABLE')),
+                        excerpt=gemini_analysis.get('summary', 'AI-powered analysis of the provided content'),
+                        trustScore=int(gemini_analysis.get('credibility_score', 0.5) * 100),
+                        category=SourceCategory.AI_ANALYSIS
+                    )
+                    citations.append(gemini_citation)
+                    
+                    # Add additional citations from Gemini analysis if available
+                    for citation_data in gemini_analysis.get('citations', []):
+                        if citation_data.get('url') and citation_data.get('title'):
+                            citations.append(Citation(
+                                title=citation_data['title'],
+                                url=citation_data['url'],
+                                domain=citation_data.get('url', '').replace('https://', '').replace('http://', '').split('/')[0],
+                                timestamp=datetime.utcnow(),
+                                stance=StanceType.SUPPORT,  # Default to support for AI-recommended sources
+                                excerpt=citation_data.get('snippet', ''),
+                                trustScore=int(citation_data.get('relevance_score', 0.8) * 100),
+                                category=SourceCategory.NEWS  # Default to news for AI-recommended sources
+                            ))
+                    
+                    logger.info(f"✅ Gemini fallback provided {len(gemini_analysis.get('citations', [])) + 1} citations to compensate for insufficient evidence")
+                else:
+                    logger.warning(f"⚠️ Gemini fallback failed: {gemini_analysis.get('error', 'Unknown error')}")
+                    
+            except Exception as e:
+                logger.error(f"❌ Gemini fallback error: {str(e)}")
+        else:
+            logger.info("✅ Sufficient evidence from primary services - Gemini fallback not needed")
+
         # Remove duplicates and sort by trust score
         unique_citations = {}
         for citation in citations:

@@ -45,7 +45,7 @@ def check_guest_rate_limit(session: Dict[str, Any]) -> bool:
     """Check if guest user has exceeded daily limit."""
     return session["checks_count"] < session["daily_limit"]
 
-@router.post("/guest/check", response_model=CheckResponse)
+@router.post("/check", response_model=CheckResponse)
 async def guest_fact_check(
     request: CheckRequest,
     guest_id: Optional[str] = Header(None, alias="X-Guest-ID"),
@@ -154,20 +154,16 @@ async def guest_fact_check(
 async def get_guest_session(
     guest_id: Optional[str] = Header(None, alias="X-Guest-ID")
 ):
-    """Get guest session information."""
-    if not guest_id or guest_id not in guest_sessions:
-        raise HTTPException(
-            status_code=404,
-            detail="Guest session not found"
-        )
+    """Get or create guest session information."""
+    # Create a new session if guest_id is not provided or session doesn't exist
+    session = get_or_create_guest_session(guest_id)
     
-    session = guest_sessions[guest_id]
     return {
         "guest_id": session["id"],
         "checks_remaining": session["daily_limit"] - session["checks_count"],
         "daily_limit": session["daily_limit"],
         "history_count": len(session["history"]),
-        "created_at": session["created_at"],
+        "created_at": session["created_at"].isoformat() if hasattr(session["created_at"], 'isoformat') else session["created_at"],
         "benefits_of_signup": [
             "Unlimited fact checking",
             "Detailed analysis with sources",
@@ -178,7 +174,7 @@ async def get_guest_session(
         ]
     }
 
-@router.get("/guest/limits")
+@router.get("/limits")
 async def get_guest_limits():
     """Get information about guest user limitations."""
     return {
@@ -211,7 +207,7 @@ async def get_guest_limits():
         }
     }
 
-@router.post("/guest/convert")
+@router.post("/convert")
 async def convert_guest_to_user(
     guest_id: str = Header(..., alias="X-Guest-ID"),
     user_token: str = Header(..., alias="Authorization")
@@ -254,7 +250,7 @@ async def convert_guest_to_user(
         )
 
 # Health check for guest services
-@router.get("/guest/health")
+@router.get("/health")
 async def guest_health_check():
     """Health check endpoint for guest services."""
     return {

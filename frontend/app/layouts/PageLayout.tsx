@@ -35,9 +35,11 @@ const PageLayout = ({
   // Add page view analytics
   useEffect(() => {
     if (pathname) {
-      // Track page view
-      console.log(`Page view: ${pathname}`)
-      // Here you could add analytics tracking code
+      // Track page view - only in production or when needed
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Page view: ${pathname}`)
+      }
+      // Here you could add analytics tracking code for production
     }
   }, [pathname])
 

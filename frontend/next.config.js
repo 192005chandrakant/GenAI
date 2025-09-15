@@ -62,7 +62,6 @@ const nextConfig = {
   staticPageGenerationTimeout: 120,
   experimental: {
     // Apply React optimizations
-    optimizeFonts: true,
     optimizeCss: true,
     scrollRestoration: true,
   },

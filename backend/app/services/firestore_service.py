@@ -31,11 +31,21 @@ class FirestoreService:
     def __init__(self):
         """Initialize Firestore client."""
         self.use_mock = False
+        # Initialize collections as None first
+        self.users_collection = None
+        self.reports_collection = None
+        self.content_collection = None
+        self.points_collection = None
+        self.learning_collection = None
+        self.quiz_collection = None
+        
         try:
             if settings.use_mocks or settings.google_cloud_project == "local-gcp-project":
                 logger.info("Using mock Firestore service")
                 self.use_mock = True
                 self.db = None
+                # For mock mode, we still initialize collection references to prevent errors
+                self._init_mock_collections()
             else:
                 self.db = firestore.Client(project=settings.google_cloud_project)
                 self.users_collection = self.db.collection("users")
@@ -50,6 +60,36 @@ class FirestoreService:
             logger.info("Falling back to mock Firestore service")
             self.use_mock = True
             self.db = None
+            self._init_mock_collections()
+    
+    def _init_mock_collections(self):
+        """Initialize mock collection references to prevent attribute errors."""
+        # Create mock collection objects that won't actually be used
+        # but prevent AttributeError when accessed
+        class MockCollection:
+            def add(self, data):
+                return None, type('MockDocRef', (), {'id': 'mock_doc_id'})()
+            def document(self, doc_id):
+                return type('MockDoc', (), {'get': lambda: type('MockDocData', (), {'exists': False})()})()
+            def where(self, **kwargs):
+                return self
+            def order_by(self, field, direction=None):
+                return self
+            def limit(self, num):
+                return self
+            def stream(self):
+                return []
+            def update(self, data):
+                pass
+            def delete(self):
+                pass
+        
+        self.users_collection = MockCollection()
+        self.reports_collection = MockCollection()
+        self.content_collection = MockCollection()
+        self.points_collection = MockCollection()
+        self.learning_collection = MockCollection()
+        self.quiz_collection = MockCollection()
     
     # User Operations
     async def create_user(self, user_data: UserCreate) -> UserResponse:
@@ -384,6 +424,122 @@ class FirestoreService:
         except Exception as e:
             logger.error(f"Error getting learning module: {str(e)}")
             return None
+
+    async def get_learning_module_detail(self, module_id: str) -> Optional[Dict[str, Any]]:
+        """Get detailed learning module including structured sections and exercises.
+
+        In mock mode, return a rich structured module for interactive UI development.
+        """
+        if self.use_mock:
+            # Provide detailed, structured mock module content
+            return {
+                "id": module_id,
+                "title": "Spotting Deepfakes in the Wild",
+                "description": "Hands-on module to learn how to identify AI-generated images and videos.",
+                "content_type": "interactive",
+                "skill_level": "intermediate",
+                "misinformation_category": "deepfakes_manipulation",
+                "estimated_duration_minutes": 40,
+                "learning_objectives": [
+                    "Recognize common deepfake artifacts",
+                    "Use forensic tools for detection",
+                    "Understand ethical considerations"
+                ],
+                "status": "published",
+                "created_by": "system",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+                "view_count": 0,
+                "completion_count": 0,
+                "average_rating": 4.6,
+                "total_ratings": 18,
+                "tags": ["deepfakes", "media-literacy"],
+                "prerequisites": [],
+                "preview_content": "Learn to spot AI-generated media with practical tips and tools.",
+                "thumbnail_url": None,
+                # Legacy content body (optional)
+                "content": "# Spotting Deepfakes\n\nThis module walks you through practical techniques...",
+                # Structured content sections
+                "content_sections": [
+                    {
+                        "title": "What Are Deepfakes?",
+                        "description": "Overview and context",
+                        "content_body": "Deepfakes are synthetic media where a person in an existing image or video is replaced with someone else's likeness...",
+                        "content_type": "text",
+                        "skill_level": "beginner",
+                        "estimated_duration_minutes": 5,
+                        "tags": ["overview"],
+                        "keywords": ["deepfake", "synthetic media"],
+                        "learning_objectives": ["Define deepfakes", "Understand use cases"],
+                        "prerequisites": [],
+                        "media_attachments": [],
+                        "external_resources": []
+                    },
+                    {
+                        "title": "Visual Artifacts",
+                        "description": "Common signs in images and videos",
+                        "content_body": "Look for irregular eye blinking, mismatched lighting, warping around the face edges...",
+                        "content_type": "image",
+                        "skill_level": "intermediate",
+                        "estimated_duration_minutes": 8,
+                        "tags": ["artifacts"],
+                        "keywords": ["visual", "forensics"],
+                        "learning_objectives": ["Identify visual artifacts"],
+                        "prerequisites": [],
+                        "media_attachments": ["upload_example_artifact_1"],
+                        "external_resources": []
+                    }
+                ],
+                # Interactive exercises (e.g., quiz)
+                "interactive_exercises": [
+                    {
+                        "id": "quiz_1",
+                        "exercise_type": "quiz",
+                        "title": "Deepfake Basics Quiz",
+                        "instructions": "Answer the following questions to check your understanding.",
+                        "content": {
+                            "questions": [
+                                {
+                                    "id": "q1",
+                                    "type": "single",
+                                    "prompt": "Which of the following is a common visual sign of a deepfake?",
+                                    "options": [
+                                        "Consistent eye blinking",
+                                        "Mismatched lighting on the face",
+                                        "Perfect lip-sync",
+                                        "Natural shadows"
+                                    ],
+                                    "answer": 1
+                                },
+                                {
+                                    "id": "q2",
+                                    "type": "true_false",
+                                    "prompt": "All deepfakes can be detected with the naked eye.",
+                                    "answer": False
+                                }
+                            ]
+                        },
+                        "correct_answers": None,
+                        "hints": ["Look at lighting and reflections"],
+                        "explanation": "Visual inconsistencies are common in lower-quality deepfakes.",
+                        "points_possible": 10
+                    }
+                ],
+                "media_uploads": [],
+                "metadata": {"fact_check_score": 92, "media_urls": []}
+            }
+
+        try:
+            # Real implementation: fetch module document with nested fields
+            doc = self.learning_collection.document(module_id).get()
+            if doc.exists:
+                module_data = doc.to_dict()
+                module_data["id"] = doc.id
+                return module_data
+            return None
+        except Exception as e:
+            logger.error(f"Error getting detailed learning module: {str(e)}")
+            return None
     
     # Quiz Operations
     async def save_quiz_submission(self, submission: QuizSubmission) -> str:
@@ -417,6 +573,19 @@ class FirestoreService:
     # Analytics Operations
     async def get_analytics_summary(self) -> Dict[str, Any]:
         """Get analytics summary for admin dashboard."""
+        if self.use_mock:
+            logger.info("Mock: Returning sample analytics data")
+            return {
+                "total_users": 125,
+                "total_reports": 89,
+                "average_points": 156.7,
+                "top_reporters": [
+                    {"user_id": "mock_user_1", "name": "Mock User 1", "total_reports": 15},
+                    {"user_id": "mock_user_2", "name": "Mock User 2", "total_reports": 12},
+                    {"user_id": "mock_user_3", "name": "Mock User 3", "total_reports": 10}
+                ]
+            }
+        
         try:
             # Get total users
             users_docs = self.users_collection.stream()
@@ -456,6 +625,434 @@ class FirestoreService:
                 "average_points": 0,
                 "top_reporters": []
             }
+
+    # Enhanced Community Methods
+    async def search_community_posts(self, search_criteria: Dict[str, Any], user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Search community posts with filters."""
+        if self.use_mock:
+            logger.info("Mock: Returning sample community posts")
+            return [
+                {
+                    "id": "post_1",
+                    "title": "Understanding Deepfakes",
+                    "content": "Learn how to identify deepfake videos and images...",
+                    "author_id": "user_1",
+                    "author_name": "Alex Johnson",
+                    "category": "misinformation-awareness",
+                    "post_type": "educational",
+                    "created_at": datetime.utcnow().isoformat(),
+                    "likes_count": 15,
+                    "comments_count": 8,
+                    "is_liked": False,
+                    "is_bookmarked": False
+                },
+                {
+                    "id": "post_2", 
+                    "title": "Fact-Checking Social Media Posts",
+                    "content": "Best practices for verifying information on social media...",
+                    "author_id": "user_2",
+                    "author_name": "Sarah Chen",
+                    "category": "fact-checking",
+                    "post_type": "discussion",
+                    "created_at": datetime.utcnow().isoformat(),
+                    "likes_count": 23,
+                    "comments_count": 12,
+                    "is_liked": False,
+                    "is_bookmarked": False
+                }
+            ]
+        
+        try:
+            # In real implementation, this would query Firestore
+            # For now, return empty list
+            return []
+        except Exception as e:
+            logger.error(f"Error searching community posts: {str(e)}")
+            return []
+
+    async def create_enhanced_community_post(self, post_data: Dict[str, Any]) -> str:
+        """Create a new community post."""
+        if self.use_mock:
+            import uuid
+            post_id = str(uuid.uuid4())
+            logger.info(f"Mock: Created community post {post_id}")
+            return post_id
+        
+        try:
+            # In real implementation, this would create in Firestore
+            return "mock_post_id"
+        except Exception as e:
+            logger.error(f"Error creating community post: {str(e)}")
+            raise
+
+    async def get_enhanced_community_post(self, post_id: str) -> Optional[Dict[str, Any]]:
+        """Get a community post by ID."""
+        if self.use_mock:
+            logger.info(f"Mock: Getting community post {post_id}")
+            return {
+                "id": post_id,
+                "title": "Sample Post",
+                "content": "This is a sample post content...",
+                "author_id": "user_1",
+                "author_name": "Mock User",
+                "category": "misinformation-awareness",
+                "post_type": "discussion",
+                "created_at": datetime.utcnow().isoformat(),
+                "likes_count": 5,
+                "comments_count": 3,
+                "allow_comments": True
+            }
+        
+        try:
+            # In real implementation, this would query Firestore
+            return None
+        except Exception as e:
+            logger.error(f"Error getting community post: {str(e)}")
+            return None
+
+    async def update_enhanced_community_post(self, post_id: str, update_data: Dict[str, Any]) -> None:
+        """Update a community post."""
+        if self.use_mock:
+            logger.info(f"Mock: Updated community post {post_id}")
+            return
+        
+        try:
+            # In real implementation, this would update in Firestore
+            pass
+        except Exception as e:
+            logger.error(f"Error updating community post: {str(e)}")
+            raise
+
+    async def store_media_upload(self, media_data: Dict[str, Any]) -> None:
+        """Store media upload metadata."""
+        if self.use_mock:
+            logger.info("Mock: Stored media upload metadata")
+            return
+        
+        try:
+            # In real implementation, this would store in Firestore
+            pass
+        except Exception as e:
+            logger.error(f"Error storing media upload: {str(e)}")
+            raise
+
+    async def get_user_post_interactions(self, user_id: str, post_id: str) -> List[Dict[str, Any]]:
+        """Get user interactions for a post."""
+        if self.use_mock:
+            return []
+        
+        try:
+            # In real implementation, this would query Firestore
+            return []
+        except Exception as e:
+            logger.error(f"Error getting user interactions: {str(e)}")
+            return []
+
+    async def increment_post_views(self, post_id: str) -> None:
+        """Increment post view count."""
+        if self.use_mock:
+            return
+        
+        try:
+            # In real implementation, this would update Firestore
+            pass
+        except Exception as e:
+            logger.error(f"Error incrementing post views: {str(e)}")
+
+    # Enhanced Learning Methods
+    async def search_learning_modules(self, search_criteria: Dict[str, Any], user_id: Optional[str] = None) -> tuple[List[Dict[str, Any]], int]:
+        """Search learning modules with filters."""
+        if self.use_mock:
+            logger.info("Mock: Returning sample learning modules")
+            modules = [
+                {
+                    "id": "module_1",
+                    "title": "Introduction to Misinformation",
+                    "description": "Learn the basics of identifying misinformation and fake news.",
+                    "content": "# Introduction to Misinformation\n\nThis module covers the fundamentals of misinformation detection...",
+                    "category": "misinformation-awareness",
+                    "difficulty_level": "beginner",
+                    "estimated_duration_minutes": 30,
+                    "tags": ["misinformation", "basics", "detection"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 125,
+                    "average_rating": 4.5,
+                    "rating_count": 20,
+                    "content_type": "text",
+                    "interactive_elements": [],
+                    "prerequisites": [],
+                    "learning_objectives": ["Understand basic misinformation concepts", "Learn detection techniques"]
+                },
+                {
+                    "id": "module_2",
+                    "title": "Spotting Deepfakes",
+                    "description": "Advanced techniques for identifying AI-generated media.",
+                    "content": "# Spotting Deepfakes\n\nDeepfakes are becoming increasingly sophisticated...",
+                    "category": "media-literacy",
+                    "difficulty_level": "intermediate", 
+                    "estimated_duration_minutes": 45,
+                    "tags": ["deepfakes", "AI", "video", "image"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 89,
+                    "average_rating": 4.7,
+                    "rating_count": 15,
+                    "content_type": "text",
+                    "interactive_elements": [],
+                    "prerequisites": ["module_1"],
+                    "learning_objectives": ["Identify deepfake videos", "Understand AI generation techniques"]
+                },
+                {
+                    "id": "module_3",
+                    "title": "Social Media Fact-Checking",
+                    "description": "Tools and techniques for verifying social media content.",
+                    "content": "# Social Media Fact-Checking\n\nSocial media is a breeding ground for misinformation...",
+                    "category": "fact-checking",
+                    "difficulty_level": "beginner",
+                    "estimated_duration_minutes": 25,
+                    "tags": ["social-media", "verification", "tools"],
+                    "author_id": "system", 
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 156,
+                    "average_rating": 4.3,
+                    "rating_count": 25,
+                    "content_type": "text",
+                    "interactive_elements": [],
+                    "prerequisites": [],
+                    "learning_objectives": ["Use fact-checking tools", "Verify social media posts"]
+                },
+                {
+                    "id": "module_4",
+                    "title": "Understanding Bias in News",
+                    "description": "How to identify and account for bias in news reporting.",
+                    "content": "# Understanding Bias in News\n\nMedia bias can influence how information is presented...",
+                    "category": "news-analysis",
+                    "difficulty_level": "intermediate",
+                    "estimated_duration_minutes": 40,
+                    "tags": ["bias", "news", "analysis", "critical-thinking"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 67,
+                    "average_rating": 4.4,
+                    "rating_count": 12,
+                    "content_type": "text",
+                    "interactive_elements": [],
+                    "prerequisites": [],
+                    "learning_objectives": ["Identify media bias", "Analyze news sources"]
+                },
+                {
+                    "id": "module_5",
+                    "title": "Digital Citizenship Basics",
+                    "description": "Responsible behavior and critical thinking in digital spaces.",
+                    "content": "# Digital Citizenship Basics\n\nBeing a good digital citizen means...",
+                    "category": "digital-citizenship",
+                    "difficulty_level": "beginner",
+                    "estimated_duration_minutes": 35,
+                    "tags": ["digital-citizenship", "responsibility", "ethics"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team", 
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 98,
+                    "average_rating": 4.6,
+                    "rating_count": 18,
+                    "content_type": "text",
+                    "interactive_elements": [],
+                    "prerequisites": [],
+                    "learning_objectives": ["Understand digital responsibility", "Practice ethical online behavior"]
+                }
+            ]
+            
+            # Apply basic filtering for demo
+            if search_criteria.get("category"):
+                modules = [m for m in modules if m["category"] == search_criteria["category"]]
+            if search_criteria.get("difficulty"):
+                modules = [m for m in modules if m["difficulty_level"] == search_criteria["difficulty"]]
+            
+            return modules, len(modules)
+        
+        try:
+            # In real implementation, this would query Firestore
+            return [], 0
+        except Exception as e:
+            logger.error(f"Error searching learning modules: {str(e)}")
+            return [], 0
+
+    async def search_enhanced_learning_modules(self, search_criteria: Dict[str, Any], user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Search learning modules with filters."""
+        if self.use_mock:
+            logger.info("Mock: Returning sample learning modules")
+            return [
+                {
+                    "id": "module_1",
+                    "title": "Introduction to Misinformation",
+                    "description": "Learn the basics of identifying misinformation and fake news.",
+                    "content": "# Introduction to Misinformation\n\nThis module covers the fundamentals of misinformation detection...",
+                    "category": "misinformation-awareness",
+                    "difficulty_level": "beginner",
+                    "estimated_duration_minutes": 30,
+                    "tags": ["misinformation", "basics", "detection"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 125,
+                    "average_rating": 4.5,
+                    "rating_count": 20
+                },
+                {
+                    "id": "module_2",
+                    "title": "Spotting Deepfakes",
+                    "description": "Advanced techniques for identifying AI-generated media.",
+                    "content": "# Spotting Deepfakes\n\nDeepfakes are becoming increasingly sophisticated...",
+                    "category": "media-literacy",
+                    "difficulty_level": "intermediate",
+                    "estimated_duration_minutes": 45,
+                    "tags": ["deepfakes", "AI", "video", "image"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 89,
+                    "average_rating": 4.7,
+                    "rating_count": 15
+                },
+                {
+                    "id": "module_3",
+                    "title": "Social Media Fact-Checking",
+                    "description": "Tools and techniques for verifying social media content.",
+                    "content": "# Social Media Fact-Checking\n\nSocial media is a breeding ground for misinformation...",
+                    "category": "fact-checking",
+                    "difficulty_level": "beginner",
+                    "estimated_duration_minutes": 25,
+                    "tags": ["social-media", "verification", "tools"],
+                    "author_id": "system", 
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 156,
+                    "average_rating": 4.3,
+                    "rating_count": 25
+                },
+                {
+                    "id": "module_4",
+                    "title": "Understanding Bias in News",
+                    "description": "How to identify and account for bias in news reporting.",
+                    "content": "# Understanding Bias in News\n\nMedia bias can influence how information is presented...",
+                    "category": "news-analysis",
+                    "difficulty_level": "intermediate",
+                    "estimated_duration_minutes": 40,
+                    "tags": ["bias", "news", "analysis", "critical-thinking"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team",
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 67,
+                    "average_rating": 4.4,
+                    "rating_count": 12
+                },
+                {
+                    "id": "module_5",
+                    "title": "Digital Citizenship Basics",
+                    "description": "Responsible behavior and critical thinking in digital spaces.",
+                    "content": "# Digital Citizenship Basics\n\nBeing a good digital citizen means...",
+                    "category": "digital-citizenship",
+                    "difficulty_level": "beginner",
+                    "estimated_duration_minutes": 35,
+                    "tags": ["digital-citizenship", "responsibility", "ethics"],
+                    "author_id": "system",
+                    "author_name": "MisinfoGuard Team", 
+                    "is_published": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "completion_count": 98,
+                    "average_rating": 4.6,
+                    "rating_count": 18
+                }
+            ]
+        
+        try:
+            # In real implementation, this would query Firestore
+            return []
+        except Exception as e:
+            logger.error(f"Error searching learning modules: {str(e)}")
+            return []
+
+    async def create_enhanced_learning_module(self, module_data: Dict[str, Any]) -> str:
+        """Create a new learning module."""
+        if self.use_mock:
+            import uuid
+            module_id = str(uuid.uuid4())
+            logger.info(f"Mock: Created learning module {module_id}")
+            return module_id
+        
+        try:
+            # In real implementation, this would create in Firestore
+            return "mock_module_id"
+        except Exception as e:
+            logger.error(f"Error creating learning module: {str(e)}")
+            raise
+
+    async def get_enhanced_learning_module(self, module_id: str) -> Optional[Dict[str, Any]]:
+        """Get a learning module by ID."""
+        if self.use_mock:
+            logger.info(f"Mock: Getting learning module {module_id}")
+            return {
+                "id": module_id,
+                "title": "Sample Learning Module",
+                "description": "This is a sample learning module description...",
+                "content": "# Sample Module\n\nThis is sample content for a learning module...",
+                "category": "misinformation-awareness",
+                "difficulty_level": "beginner",
+                "estimated_duration_minutes": 30,
+                "tags": ["sample", "test"],
+                "author_id": "system",
+                "author_name": "System",
+                "is_published": True,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat(),
+                "completion_count": 0,
+                "average_rating": 0,
+                "rating_count": 0
+            }
+        
+        try:
+            # In real implementation, this would query Firestore
+            return None
+        except Exception as e:
+            logger.error(f"Error getting learning module: {str(e)}")
+            return None
+
+    async def update_enhanced_learning_module(self, module_id: str, update_data: Dict[str, Any]) -> None:
+        """Update a learning module."""
+        if self.use_mock:
+            logger.info(f"Mock: Updated learning module {module_id}")
+            return
+        
+        try:
+            # In real implementation, this would update in Firestore
+            pass
+        except Exception as e:
+            logger.error(f"Error updating learning module: {str(e)}")
+            raise
 
 
 # Global instance

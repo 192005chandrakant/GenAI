@@ -471,8 +471,12 @@ export function usePageView(pageTitle: string) {
   const pathname = usePathname()
   
   useEffect(() => {
-    document.title = `${pageTitle} | MisinfoGuard`
-  }, [pageTitle, pathname])
+    // Only update title if it's different to prevent unnecessary re-renders
+    const newTitle = `${pageTitle} | MisinfoGuard`
+    if (document.title !== newTitle) {
+      document.title = newTitle
+    }
+  }, [pageTitle]) // Remove pathname dependency to prevent excessive re-renders
 }
 
 /**

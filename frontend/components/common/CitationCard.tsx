@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Citation } from '../../lib/api';
 import { formatTimestamp, truncateText } from '../../lib/utils';
-import { ExternalLink, CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
+import { ExternalLink, CheckCircle2, XCircle, HelpCircle, Bot } from 'lucide-react';
 
 interface CitationCardProps {
   citation: Citation;
@@ -40,12 +40,20 @@ const CitationCard = ({ citation, onClick }: CitationCardProps) => {
     return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
   };
 
+  const defaultFaviconSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01"/><path d="M12 8v4"/></svg>';
+
+  const isAIAnalysis = citation.category === 'ai_analysis';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="border rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow"
+      className={`border rounded-lg overflow-hidden ${
+        isAIAnalysis 
+          ? 'bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200' 
+          : 'bg-white'
+      } hover:shadow-md transition-shadow`}
       onClick={onClick}
     >
       <div className="border-b border-gray-100 p-3 flex items-center justify-between">
@@ -55,8 +63,11 @@ const CitationCard = ({ citation, onClick }: CitationCardProps) => {
             alt={citation.domain}
             className="w-4 h-4"
             onError={(e) => {
-              // Fallback if favicon fails to load
-              (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01"/><path d="M12 8v4"/></svg>';
+              // Use the defaultFaviconSvg without triggering re-render
+              const target = e.target as HTMLImageElement;
+              if (target.src !== defaultFaviconSvg) {
+                target.src = defaultFaviconSvg;
+              }
             }}
           />
           <span className="font-medium text-gray-800 truncate max-w-[180px]">
@@ -78,9 +89,9 @@ const CitationCard = ({ citation, onClick }: CitationCardProps) => {
       </div>
       
       <div className="p-4">
-        <h4 className="font-medium text-gray-900 mb-2">{truncateText(citation.title, 100)}</h4>
+        <h4 className="font-medium text-gray-900 mb-2">{truncateText(citation.title || '', 100)}</h4>
         <p className="text-sm text-gray-600 mb-4">
-          "{truncateText(citation.snippet, 150)}"
+          "{truncateText(citation.snippet || '', 150)}"
         </p>
         
         <div className="flex items-center justify-between mt-2">

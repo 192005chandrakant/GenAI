@@ -18,12 +18,14 @@ class TranslationService:
     def __init__(self):
         """Initialize translation service."""
         try:
-            self.client = translate.TranslationServiceClient()
-            self.client_v2 = translate.Client()
+            if not settings.USE_MOCKS:
+                self.client = translate.TranslationServiceClient()
+                self.client_v2 = translate.Client()
         except Exception as e:
             logger.error(f"Failed to initialize translation client: {str(e)}")
             self.client = None
             self.client_v2 = None
+
     
     async def detect_language(self, text: str) -> Optional[str]:
         """
